@@ -1,0 +1,17 @@
+Note: v8 of addWJetsWeights.C inverts the sign of fakeW for MC samples (dataset<100)
+such that they can be used to subtract the contamination from data-driven estimate.
+
+to run in batch jobs on lxbatch,
+
+compile the macro first 
+> root -b
+> [0] .L addWJetsWeights.C++
+> [1] .q
+
+then 
+> ./bsub.py -r /afs/cern.ch/user/m/maiko/scratch0/CMSSW/CMSSW_5_3_3 -w /afs/cern.ch/user/m/maiko/work/public/WJet/
+
+where -w is where you have your 
+* input/ directory
+* runWJets.C macro
+* addWJetsWeights_C.so 
