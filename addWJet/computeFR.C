@@ -37,6 +37,9 @@ bool  IsTightLepton(int k);
 bool  IsLooseLepton(int k);
 bool  IsLooseIsolatedLepton(int k);
 bool  comesFromW (int k);
+bool  isGen (int k);
+Double_t giveMT(int k, double MET, double MET_Phi);
+
 
 //------------------------------------------------------------------------------
 // Define structures & GLB variables 
@@ -55,26 +58,41 @@ struct Lepton {
   UInt_t         type;    // Tight, Loose
   Float_t        charge;
   Bool_t         fromW;
+  Bool_t         iGen;
   Float_t        fr;
   Float_t        pr;
   TLorentzVector v;
 
 };
 
-std::vector<Lepton> AnalysisLeptons;
 
+struct Jet { 
+
+  UInt_t         index;
+  TLorentzVector v;
+
+};
+
+std::vector<Lepton> AnalysisLeptons;
+std::vector<Jet> AnalysisJets;
 
 Float_t          jetRho;
 Float_t          channel;
 Float_t          baseW;
 Float_t          pfType1Met;  
+Float_t          pfType1Metphi;
 Float_t          mth;
+Float_t          dphilmet1;
+Float_t          dphilmet2;
+Float_t          nvtx;
+
 vector<float>   *std_vector_lepton_id;
 vector<float>   *std_vector_lepton_pt;
 vector<float>   *std_vector_lepton_eta;
 vector<float>   *std_vector_lepton_phi;
 vector<float>   *std_vector_lepton_isTightMuon; 
 vector<float>   *std_vector_lepton_eleIdMedium; 
+vector<float>   *std_vector_lepton_eleIdVeto;
 vector<float>   *std_vector_lepton_chargedHadronIso; 
 vector<float>   *std_vector_lepton_photonIso;
 vector<float>   *std_vector_lepton_neutralHadronIso;
@@ -92,8 +110,13 @@ vector<float>   *std_vector_leptonGen_status;
 vector<float>   *std_vector_leptonGen_mpid;
 vector<float>   *std_vector_leptonGen_mstatus;
 
-
-
+vector<float>   *std_vector_jet_pt;
+vector<float>   *std_vector_jet_eta;
+vector<float>   *std_vector_jet_phi;
+vector<float>   *std_vector_lepton_closejet_pt;
+vector<float>   *std_vector_lepton_closejet_eta;
+vector<float>   *std_vector_lepton_closejet_phi;
+vector<float>   *std_vector_lepton_closejet_PartonFlavour;
 
 //------------------------------------------------------------------------------
 // MAIN function
@@ -105,55 +128,123 @@ void computeFR (TString theSample="WJets") {
   // ------ root settings ---------
  
   TH1::SetDefaultSumw2();
- 
-  TFile* root_output = new TFile(theSample + "_FakeRate.root", "recreate");
+  
+  TString path = Form("rootfiles/");
+
+  TFile* root_output = new TFile(path + theSample + "_FakeRate.root", "recreate");
 
 
   //-- Define histograms 
   //----------------------------------------------------------------------------
 
   // Define pt bins for FR matrix
-  int pTbin = 18;
-  Double_t pTbins[19] = {10,15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100};
- 
+  int pTbin = 8;
+  Double_t pTbins[9] = { 10., 15., 20., 25., 30., 35., 40., 45.0, 50.0};
+
   // Define eta bins for FR matrix
-  int etabin = 4;
-  Double_t etabins[5] = {0,1.0,1.479,2.0,2.5};
+  int etabin = 5;
+  Double_t etabins[6] = {0.0, 0.5, 1.0, 1.5, 2.0, 2.5};
+
+  //Define pt bins for FR matrix
+  int dxypTbin = 7;
+  Double_t dxypTbins[8] = {0,0.002,0.004,0.006,0.008,0.012,0.016,0.020};
+
 
   TH1F  *h_Muon_fake_pT_bin   = new TH1F("h_Muon_fake_pT_bin","h_Muon_fake_pT_bin", pTbin,pTbins);
   TH1F  *h_Muon_signal_pT_bin = new TH1F("h_Muon_signal_pT_bin","h_Muon_signal_pT_bin",pTbin,pTbins);
   TH1F  *h_Muon_fake_eta_bin = new TH1F("h_Muon_fake_eta_bin","h_Muon_fake_eta_bin",etabin,etabins);
   TH1F  *h_Muon_signal_eta_bin = new TH1F("h_Muon_signal_eta_bin","h_Muon_signal_eta_bin",etabin,etabins);
 
+  TH2F  *h_Muon_fake_pt_eta_bin = new TH2F("h_Muon_fake_pt_eta_bin","h_Muon_fake_pt_eta_bin",pTbin,pTbins,etabin,etabins);
+  TH2F  *h_Muon_signal_pt_eta_bin = new TH2F("h_Muon_signal_pt_eta_bin","h_Muon_signal_pt_eta_bin",pTbin,pTbins,etabin,etabins);
+
   TH1F  *h_Muon_fake_nPV = new TH1F("h_Muon_fake_nPV","h_Muon_fake_nPV",30,0,30);
   TH1F  *h_Muon_signal_nPV = new TH1F("h_Muon_signal_nPV","h_Muon_signal_nPV",30,0,30);
 
   TH1F  *h_Muon_fake_iso   = new TH1F("h_Muon_fake_iso","h_Muon_fake_iso", 100,0,0.5);
   TH1F  *h_Muon_signal_iso   = new TH1F("h_Muon_signal_iso","h_Muon_signal_iso", 100,0,0.5);
+  
+  TH1F  *h_Muon_Mt1   = new TH1F("h_Muon_Mt1","h_Muon_Mt1", 100,0,200);
+  TH1F  *h_Muon_Mt2  = new TH1F("h_Muon_Mt2","h_Muon_Mt2", 100,0,200);
+
+  TH1F  *h_Muon_Mt   = new TH1F("h_Muon_Mt","h_Muon_Mt", 100,0,200);
+  TH1F  *h_Muon_Met   = new TH1F("h_Muon_Met","h_Muon_Met", 100,0,200);
+  TH1F  *h_Muon_jetEt   = new TH1F("h_Muon_jetEt","h_Muon_jetEt", 100,0,200);
+  TH1F  *h_Muon_pt   = new TH1F("h_Muon_pt","h_Muon_pt", 50,0,50);
+
+  TH1F  *h_Muon_fake_dxy_pt = new TH1F("h_Muon_fake_dxy_pt","h_Muon_fake_dxy_pt",50, 0, 0.3);
+  TH1F  *h_Muon_signal_dxy_pt = new TH1F("h_Muon_signal_dxy_pt","h_Muon_fake_dxy_pt",50, 0, 0.3);
+
+  TH1F  *h_Muon_fake_dxy = new TH1F("h_Muon_fake_dxy","h_Muon_fake_dxy",50, 0, 0.3);
+  TH1F  *h_Muon_signal_dxy = new TH1F("h_Muon_signal_dxy","h_Muon_fake_dxy",50, 0, 0.3);
+
+  TH1F  *h_Muon_fake_dxy_pt_bin = new TH1F("h_Muon_fake_dxy_pt_bin","h_Muon_fake_dxy_pt_bin",dxypTbin,dxypTbins);
+  TH1F  *h_Muon_signal_dxy_pt_bin = new TH1F("h_Muon_signal_dxy_pt_bin","h_Muon_fake_dxy_pt_bin",dxypTbin,dxypTbins);
+
+  TH1F  *h_Muon_fake_jetEt = new TH1F("h_Muon_fake_jetEt","h_Muon_fake_jetEt",10,10,150);
+  TH1F  *h_Muon_signal_jetEt = new TH1F("h_Muon_signal_jetEt","h_Muon_signal_jetEt",10,10,150);
+
+
+  TH1F  *h_Ele_fake_pT_bin   = new TH1F("h_Ele_fake_pT_bin","h_Ele_fake_pT_bin", pTbin,pTbins);
+  TH1F  *h_Ele_signal_pT_bin = new TH1F("h_Ele_signal_pT_bin","h_Ele_signal_pT_bin",pTbin,pTbins);
+  TH1F  *h_Ele_fake_eta_bin = new TH1F("h_Ele_fake_eta_bin","h_Ele_fake_eta_bin",etabin,etabins);
+  TH1F  *h_Ele_signal_eta_bin = new TH1F("h_Ele_signal_eta_bin","h_Ele_signal_eta_bin",etabin,etabins);
+
+  TH2F  *h_Ele_fake_pt_eta_bin = new TH2F("h_Ele_fake_pt_eta_bin","h_Ele_fake_pt_eta_bin",pTbin,pTbins,etabin,etabins);
+  TH2F  *h_Ele_signal_pt_eta_bin = new TH2F("h_Ele_signal_pt_eta_bin","h_Ele_signal_pt_eta_bin",pTbin,pTbins,etabin,etabins);
+
+  TH1F  *h_Ele_fake_nPV = new TH1F("h_Ele_fake_nPV","h_Ele_fake_nPV",30,0,30);
+  TH1F  *h_Ele_signal_nPV = new TH1F("h_Ele_signal_nPV","h_Ele_signal_nPV",30,0,30);
+
+  TH1F  *h_Ele_fake_iso   = new TH1F("h_Ele_fake_iso","h_Ele_fake_iso", 100,0,0.5);
+  TH1F  *h_Ele_signal_iso   = new TH1F("h_Ele_signal_iso","h_Ele_signal_iso", 100,0,0.5);
+  
+  TH1F  *h_Ele_Mt1   = new TH1F("h_Ele_Mt1","h_Ele_Mt1", 100,0,200);
+  TH1F  *h_Ele_Mt2  = new TH1F("h_Ele_Mt2","h_Ele_Mt2", 100,0,200);
+
+  TH1F  *h_Ele_Mt   = new TH1F("h_Ele_Mt","h_Ele_Mt", 100,0,200);
+  TH1F  *h_Ele_Met   = new TH1F("h_Ele_Met","h_Ele_Met", 100,0,200);
+
 
 
 
   //--- OPEN LOOSE-LOOSE FILE 
   //----------------------------------------------------------------------------
   
-  TString filesPath;
-  filesPath = "/gpfs/csic_projects/cms/piedra/latino/25ns/";
-		 
+  TString filesPath1, filesPath2;
+  filesPath1 = "/gpfs/csic_projects/cms/piedra/latino/RunII/MC_Spring15/25ns/";
+  filesPath2 = "/gpfs/csic_projects/cms/piedra/latino/RunII/MC_Spring15/50ns/";
+
+
   TChain* tree = new TChain("latino", "latino");
 
   if (theSample == "WJets") {
-    tree->Add(filesPath + "latino_WJetsToLNu.root");
+    tree->Add(filesPath1 + "latino_WJetsToLNu.root");
+  }
+  else if (theSample == "QCD") {
+    tree->Add(filesPath1 + "latino_QCD15to20Mu.root");
+  }
+  else if (theSample == "ZJets") {
+    tree->Add(filesPath1 + "latino_DYJetsToLL1050.root");
+    tree->Add(filesPath1 + "latino_DYJetsToLL.root");
+  }
+  else if (theSample == "data") {
+    tree->Add(filesPath2 + "/gpfs/csic_projects/cms/calderon/SingleMuon/all.root");
   }
   else {
     return;
   }
 
 
-  tree->SetBranchAddress("baseW  ", &baseW);
+  tree->SetBranchAddress("baseW", &baseW);
   tree->SetBranchAddress("jetRho", &jetRho);
   tree->SetBranchAddress("channel", &channel);
   tree->SetBranchAddress("pfType1Met", &pfType1Met);
+  tree->SetBranchAddress("pfType1Metphi", &pfType1Metphi);
   tree->SetBranchAddress("mth", &mth);
+  tree->SetBranchAddress("dphilmet1", &dphilmet1);
+  tree->SetBranchAddress("dphilmet2", &dphilmet2);
+  tree->SetBranchAddress("nvtx",&nvtx);
 
   tree->SetBranchAddress("std_vector_lepton_pt", &std_vector_lepton_pt);
   tree->SetBranchAddress("std_vector_lepton_eta", &std_vector_lepton_eta);
@@ -161,6 +252,7 @@ void computeFR (TString theSample="WJets") {
   tree->SetBranchAddress("std_vector_lepton_id", &std_vector_lepton_id);
   tree->SetBranchAddress("std_vector_lepton_isTightMuon", &std_vector_lepton_isTightMuon);
   tree->SetBranchAddress("std_vector_lepton_eleIdMedium", &std_vector_lepton_eleIdMedium);
+  tree->SetBranchAddress("std_vector_lepton_eleIdVeto", &std_vector_lepton_eleIdVeto);
   tree->SetBranchAddress("std_vector_lepton_chargedHadronIso", &std_vector_lepton_chargedHadronIso);
   tree->SetBranchAddress("std_vector_lepton_photonIso", &std_vector_lepton_photonIso);
   tree->SetBranchAddress("std_vector_lepton_neutralHadronIso", &std_vector_lepton_neutralHadronIso);
@@ -177,8 +269,15 @@ void computeFR (TString theSample="WJets") {
   tree->SetBranchAddress("std_vector_leptonGen_mpid", &std_vector_leptonGen_mpid);
   tree->SetBranchAddress("std_vector_leptonGen_mstatus", &std_vector_leptonGen_mstatus);
 
+  tree->SetBranchAddress("std_vector_jet_pt", &std_vector_jet_pt);
+  tree->SetBranchAddress("std_vector_jet_eta", &std_vector_jet_eta);
+  tree->SetBranchAddress("std_vector_jet_phi", &std_vector_jet_phi);
+  tree->SetBranchAddress("std_vector_lepton_closejet_pt", &std_vector_lepton_closejet_pt);
+  tree->SetBranchAddress("std_vector_lepton_closejet_eta", &std_vector_lepton_closejet_eta);
+  tree->SetBranchAddress("std_vector_lepton_closejet_phi", &std_vector_lepton_closejet_phi);
+  tree->SetBranchAddress("std_vector_lepton_closejet_PartonFlavour", &std_vector_lepton_closejet_PartonFlavour);
 
- 
+
   //----------------------------------------------------------------------------
   // Loop
   //----------------------------------------------------------------------------
@@ -192,7 +291,9 @@ void computeFR (TString theSample="WJets") {
   
     if (jentry%10000==0) printf("Processing event %d \n", int(jentry));
 
-    Double_t totalW      = 1.0;
+    Float_t luminosity = 2.0; // 2fb-1
+
+    Double_t totalW  = baseW * luminosity;
 
     nE++;
 
@@ -205,12 +306,11 @@ void computeFR (TString theSample="WJets") {
     //if (!passLooseIDISO1) continue;
     //if (!passLooseIDISO2) continue;
     
-    if ( pfType1Met >= 20 ) continue;
-    //if ( mth >= 20) continue;    
-
+ 
     bool passIDISO1 = IsTightLepton(0) && IsIsolatedLepton(0); 
     bool passIDISO2 = IsTightLepton(1) && IsIsolatedLepton(1);
 
+ 
 
     // Loop over leptons
     //--------------------------------------------------------------------------
@@ -243,65 +343,224 @@ void computeFR (TString theSample="WJets") {
        lep.type = noTight;
      }
 
-     //if ( !IsLooseLepton(i)) continue;  
-     //if ( !IsLooseIsolatedLepton(i) ) continue; 
+     if ( !IsLooseLepton(i)) continue;  
+     if ( !IsLooseIsolatedLepton(i) ) continue; 
    
+     lep.fromW = true;
+     lep.iGen = true; 
+
+     if ( theSample == "WJets" )  { 
+       lep.fromW = comesFromW (i); 
+       lep.iGen = isGen(i); 
+     }
+
 
      TLorentzVector tlv;
      tlv.SetPtEtaPhiM(pt, eta, phi, 0);
      lep.v = tlv;
 
-     lep.fromW = comesFromW (i);
-   
+       
      AnalysisLeptons.push_back(lep);
 
     } // end loop on leptons 
 
-
-    //if ( AnalysisLeptons.size() > 2 ) continue;
+    if ( (theSample == "QCD" || theSample == "data") &&  AnalysisLeptons.size() != 1) continue;
+  
+    double mt = giveMT(AnalysisLeptons[0].index, pfType1Met, pfType1Metphi); 
 
 
     // Perform analysis
     //--------------------------------------------------------------------------
-    if ( theSample == "WJets" ) {
 
-      cout << nE << "  "  << AnalysisLeptons[0].fromW << "  " << AnalysisLeptons[1].fromW << 
-	"  "  << AnalysisLeptons[2].fromW << "  "  << AnalysisLeptons[3].fromW <<  "  " << AnalysisLeptons[4].fromW << "  "  << AnalysisLeptons[5].fromW <<  AnalysisLeptons[6].fromW << "  "  << AnalysisLeptons[7].fromW <<  AnalysisLeptons[8].fromW << "  "  << AnalysisLeptons[9].fromW << endl;
+    if ( std_vector_lepton_pt->at(0)  < 10 ) continue; 
 
-      if (AnalysisLeptons[0].fromW)  { 
-	h_Muon_signal_iso->Fill ( MuonIsolation(0), totalW);
-      } else if (!AnalysisLeptons[0].fromW) {
-	h_Muon_fake_iso->Fill ( MuonIsolation(0), totalW);
-      }
+    AnalysisJets.clear();
 
-      if (AnalysisLeptons[1].fromW)  { 
-	h_Muon_signal_iso->Fill ( MuonIsolation(1), totalW);
-      } else if (!AnalysisLeptons[1].fromW) {
-	h_Muon_fake_iso->Fill ( MuonIsolation(1), totalW);
-      }
+    // --------> away jet 
+    int jetsize = std_vector_jet_pt->size();
+   
+    int jetIndex = 0; 
 
+    for ( int j=0; j<jetsize; j++) {
+      
+      Jet jet_; 
 
+      jet_.index = j; 
 
-      /*if ( !AnalysisLeptons[0].fromW ||  !AnalysisLeptons[1].fromW ) { 
-	
-	if ( !AnalysisLeptons[0].fromW && AnalysisLeptons[0].flavor == Muon) {
+      float pt = std_vector_jet_pt->at(j);
+      float eta = std_vector_jet_eta->at(j);
+      float phi = std_vector_jet_phi->at(j);
+
+      if (pt < 30 ) continue;
+
+      TLorentzVector jetvt;
+      jetvt.SetPtEtaPhiM(pt, eta, phi, 0);
+
+      jet_.v = jetvt;
+
+      if ( jetvt.DeltaR(AnalysisLeptons[0].v) < 1.0 ) continue;
+
+      AnalysisJets.push_back(jet_);
 	  
-	  h_Muon_fake_pT_bin->Fill(std_vector_lepton_pt->at(0), totalW);
-	
-	  if ( passIDISO1 ) h_Muon_signal_pT_bin->Fill(std_vector_lepton_pt->at(0), totalW);
-	
-
-	} else if ( !AnalysisLeptons[1].fromW && AnalysisLeptons[1].flavor == Muon) { 
-
-	  h_Muon_fake_pT_bin->Fill(std_vector_lepton_pt->at(1), totalW);
-
-	  if ( passIDISO2 ) h_Muon_signal_pT_bin->Fill(std_vector_lepton_pt->at(1), totalW);
-	
-	}
-	}*/
     }
 
-  } //end Loop
+    if ( AnalysisJets.size() < 1 ) continue;
+
+
+    if ( theSample == "WJets" ) {
+      
+
+      if ( AnalysisLeptons[0].flavor == Muon ) { 
+	    
+	h_Muon_Mt->Fill(mt, totalW);
+	h_Muon_Met->Fill(pfType1Met, totalW);
+	h_Muon_jetEt->Fill(std_vector_lepton_closejet_pt->at(0), totalW);  
+	h_Muon_pt->Fill(std_vector_lepton_pt->at(0), totalW);
+      }
+
+
+      if (  AnalysisLeptons[0].iGen && AnalysisLeptons[1].iGen ) {
+
+	if ( AnalysisLeptons[0].fromW && AnalysisLeptons[1].fromW == false ) {
+ 	
+	  float pt = std_vector_lepton_pt->at(1);
+	  float eta = fabs(std_vector_lepton_eta->at(1));
+	  float dxy = fabs(std_vector_lepton_BestTrackdxy->at(0));
+	  float jetEt = std_vector_lepton_closejet_pt->at(1);
+
+	  if ( AnalysisLeptons[1].flavor == Muon ) { 
+	    
+	    h_Muon_fake_pT_bin->Fill(pt, totalW);
+	    h_Muon_fake_dxy_pt->Fill((dxy/pt)*100 , totalW);
+	    h_Muon_fake_dxy_pt_bin->Fill((dxy/pt)*100 , totalW);
+	    h_Muon_jetEt->Fill(jetEt, totalW);
+	    h_Muon_fake_dxy->Fill(dxy , totalW);
+	    h_Muon_fake_jetEt->Fill(jetEt, totalW);
+
+	    if ( AnalysisLeptons[1].type == Tight)  {
+
+	      h_Muon_signal_pT_bin->Fill(pt, totalW);
+	      h_Muon_signal_dxy_pt_bin->Fill((dxy/pt)*100 , totalW);
+	      h_Muon_signal_jetEt->Fill(jetEt, totalW);
+
+	    }
+	  }	
+	}
+      
+      }
+    } // END WJETS MC SAMPLE 
+
+
+    if ( theSample == "ZJets" ) {
+
+      if ( AnalysisLeptons[0].flavor == Muon ) { 
+	    
+	h_Muon_Mt->Fill(mt, totalW);
+	h_Muon_Met->Fill(pfType1Met, totalW);
+	h_Muon_jetEt->Fill(std_vector_lepton_closejet_pt->at(0), totalW); 
+	h_Muon_pt->Fill(std_vector_lepton_pt->at(0), totalW);
+      }
+    }
+
+    if ( theSample == "QCD" ) {
+
+      //if ( mt < 20 && pfType1Met < 20 ) { 
+
+	if ( AnalysisLeptons[0].flavor == Muon ) { 
+	  
+	  h_Muon_Mt->Fill(mt, totalW);
+	  h_Muon_Met->Fill(pfType1Met, totalW);
+	  
+	  float pt = std_vector_lepton_pt->at(0);
+	  float eta = fabs(std_vector_lepton_eta->at(0));
+	  float dxy = fabs(std_vector_lepton_BestTrackdxy->at(0));
+	  float jetEt = std_vector_lepton_closejet_pt->at(0);
+	  
+	  h_Muon_fake_pT_bin->Fill(pt, totalW);
+	  h_Muon_fake_eta_bin->Fill(eta, totalW);
+	  h_Muon_fake_pt_eta_bin->Fill(pt, eta , totalW); 
+	  h_Muon_fake_nPV->Fill(nvtx, totalW); 
+	  h_Muon_fake_dxy_pt->Fill((dxy/pt)*100 , totalW);
+	  h_Muon_fake_dxy_pt_bin->Fill((dxy/pt)*100 , totalW);
+	  h_Muon_jetEt->Fill(jetEt, totalW);
+	  h_Muon_fake_dxy->Fill(dxy , totalW);
+	  h_Muon_fake_jetEt->Fill(jetEt, totalW);
+	  h_Muon_pt->Fill(pt, totalW);
+
+	  if ( AnalysisLeptons[0].type == Tight)  {
+	    
+	    h_Muon_signal_pT_bin->Fill(pt, totalW);
+	    h_Muon_signal_eta_bin->Fill(eta, totalW);
+	    h_Muon_signal_pt_eta_bin->Fill(pt, eta , totalW); 
+	    h_Muon_signal_nPV->Fill(nvtx, totalW); 
+	    h_Muon_signal_dxy_pt->Fill((dxy/pt)*100 , totalW);
+	    h_Muon_signal_dxy_pt_bin->Fill((dxy/pt)*100 , totalW);
+	    h_Muon_signal_jetEt->Fill(jetEt, totalW);
+
+	  }    
+	}
+	
+	
+	if ( AnalysisLeptons[0].flavor == Electron ) { 
+	  
+	  h_Ele_Mt->Fill(mt, totalW);
+	  h_Ele_Met->Fill(pfType1Met, totalW);
+	  
+	  float pt = std_vector_lepton_pt->at(0);
+	  float eta = fabs(std_vector_lepton_eta->at(0));
+	  
+	  
+	  h_Ele_fake_pT_bin->Fill(pt, totalW);
+	  h_Ele_fake_eta_bin->Fill(eta, totalW);
+	  h_Ele_fake_pt_eta_bin->Fill(pt, eta , totalW); 
+	  h_Ele_fake_nPV->Fill(nvtx, totalW); 
+	  
+	  if ( AnalysisLeptons[0].type == Tight)  {
+	    
+	    h_Ele_signal_pT_bin->Fill(pt, totalW);
+	    h_Ele_signal_eta_bin->Fill(eta, totalW);
+	    h_Ele_signal_pt_eta_bin->Fill(pt, eta , totalW); 
+	    h_Ele_signal_nPV->Fill(nvtx, totalW); 
+	  }    
+	}
+
+	// }
+
+    } // END QCD MC sample
+
+
+
+    if ( theSample == "data" ) {
+
+      if ( AnalysisLeptons[0].flavor == Muon ) { 
+
+	h_Muon_Mt->Fill(mt, totalW);
+	h_Muon_Met->Fill(pfType1Met, totalW);
+	
+	float pt = std_vector_lepton_pt->at(0);
+	float eta = fabs(std_vector_lepton_eta->at(0));
+
+
+	h_Muon_fake_pT_bin->Fill(pt, totalW);
+	h_Muon_fake_eta_bin->Fill(eta, totalW);
+	h_Muon_fake_pt_eta_bin->Fill(pt, eta , totalW); 
+
+	if ( AnalysisLeptons[0].type == Tight)  {
+	  
+	  h_Muon_signal_pT_bin->Fill(pt, totalW);
+	  h_Muon_signal_eta_bin->Fill(eta, totalW);
+	  h_Muon_signal_pt_eta_bin->Fill(pt, eta , totalW); 
+
+	}      
+      }
+      
+    } // END QCD MC sample
+
+
+
+
+
+} //end Loop
 
 
   // Save output
@@ -330,7 +589,7 @@ bool IsTightLepton(int k)
   // Muon tight ID
   if (fabs(std_vector_lepton_id->at(k)) == 13)
     {
-      bool dxyCut = 0;
+      float dxyCut = 0;
 	
       if ( std_vector_lepton_pt->at(k) < 20 ) { 
 	dxyCut = 0.01;
@@ -339,8 +598,8 @@ bool IsTightLepton(int k)
       }
 
       is_tight_lepton = ( std_vector_lepton_isTightMuon->at(k)              && 
-			  std_vector_lepton_BestTrackdz->at(k)  < 0.1       && 
-			  std_vector_lepton_BestTrackdxy->at(k) < dxyCut );
+			  std_vector_lepton_BestTrackdz->at(k)  < 0.2       && 
+			  std_vector_lepton_BestTrackdxy->at(k) < 0.01 );
 	}
 
   // Electron cut based medium ID
@@ -414,7 +673,7 @@ bool IsIsolatedLepton(int k)
   bool is_isolated_lepton = false;
 
   if      (fabs(id) == 11) is_isolated_lepton = true;  //(ElectronIsolation(k) < 0.15);
-  else if (fabs(id) == 13) is_isolated_lepton = (MuonIsolation(k)     < 0.12);
+  else if (fabs(id) == 13) is_isolated_lepton = (MuonIsolation(k)   < 0.12);
   
   return is_isolated_lepton;
 }
@@ -434,14 +693,14 @@ bool IsLooseLepton(int k)
     {
      
       is_loose_lepton = ( std_vector_lepton_isTightMuon->at(k)              && 
-			  std_vector_lepton_BestTrackdz->at(k)  < 0.1       && 
+			  std_vector_lepton_BestTrackdz->at(k)  < 0.2       && 
 			  std_vector_lepton_BestTrackdxy->at(k) < 0.2 ); 
     }
 
   // Electron cut based medium ID
   else if (fabs(std_vector_lepton_id->at(k)) == 11)
     {
-      is_loose_lepton = true;//std_vector_lepton_eleIdMedium->at(k);
+      is_loose_lepton = true;//std_vector_lepton_eleIdVeto->at(k);
     }
 
   return is_loose_lepton;
@@ -459,7 +718,7 @@ bool IsLooseIsolatedLepton(int k)
   bool is_isolated_lepton = false;
 
   if      (fabs(id) == 11) is_isolated_lepton = true;  //(ElectronIsolation(k) < 0.15);
-  else if (fabs(id) == 13) is_isolated_lepton = (MuonIsolation(k)     < 0.4);
+  else if (fabs(id) == 13) is_isolated_lepton = (MuonIsolation(k) < 1.0);
   
   return is_isolated_lepton;
 }
@@ -468,9 +727,9 @@ bool IsLooseIsolatedLepton(int k)
 //------------------------------------------------------------------------------
 // Match to a gen lepton and identify if comes from a W. 
 //------------------------------------------------------------------------------
-bool comesFromW (int k) { 
-  
-  bool isW = false;
+bool isGen (int k) { 
+   
+  bool isGen = false;
 
   float dRmin = 999.;
   int genIndex = -1; 
@@ -481,8 +740,44 @@ bool comesFromW (int k) {
   int vGenSize = std_vector_leptonGen_pt->size();
   
   for (int i=0; i<vGenSize; i++) {
+    
+    if( std_vector_leptonGen_status->at(i) != 1 ) continue;
 
-    if( std_vector_leptonGen_pid->at(i)<0 ) continue;
+    if ( fabs(std_vector_lepton_id ->at(k)) != fabs(std_vector_leptonGen_pid->at(i)) ) continue;
+    
+    TLorentzVector genLep;
+    genLep.SetPtEtaPhiM(std_vector_leptonGen_pt->at(i), std_vector_leptonGen_eta->at(i), std_vector_leptonGen_phi->at(i), 0);
+    
+    float dR = lep.DeltaR(genLep); 
+       
+    if ( dR < 0.3 )  { 
+      genIndex = i; 
+      isGen = true; 
+    }
+   
+  }
+
+  return isGen;
+
+}
+
+//------------------------------------------------------------------------------
+// Match to a gen lepton and identify if comes from a W. 
+//------------------------------------------------------------------------------
+bool comesFromW (int k) { 
+  
+  bool isW = false;
+ 
+  float dRmin = 999.;
+  int genIndex = -1; 
+  
+  TLorentzVector lep;
+  lep.SetPtEtaPhiM(std_vector_lepton_pt->at(k), std_vector_lepton_eta->at(k), std_vector_lepton_phi->at(k), 0);
+
+  int vGenSize = std_vector_leptonGen_pt->size();
+  
+  for (int i=0; i<vGenSize; i++) {
+
 
     if( std_vector_leptonGen_status->at(i) != 1 ) continue;
 
@@ -493,7 +788,7 @@ bool comesFromW (int k) {
     
     float dR = lep.DeltaR(genLep); 
        
-    if ( dR < 0.1 )   genIndex = i; 
+    if ( dR < 0.3 )  genIndex = i; 
    
   }
 
@@ -520,3 +815,25 @@ bool comesFromW (int k) {
   return isW;
 }
      
+
+//------------------------------------------------------------------------------
+// Compute MT variable 
+//------------------------------------------------------------------------------
+Double_t giveMT(int k, double MET, double MET_Phi)
+{
+  TLorentzVector lep;
+  lep.SetPtEtaPhiM(std_vector_lepton_pt->at(k), std_vector_lepton_eta->at(k), std_vector_lepton_phi->at(k), 0);
+
+  // --> Transversal Mass ( lepton, MET) 
+  Double_t pt = std_vector_lepton_pt->at(k);
+  Double_t px = lep.Px();
+  Double_t py = lep.Py();
+  Double_t pxnu = cos(MET_Phi)*MET;
+  Double_t pynu = sin(MET_Phi)*MET;
+  Double_t ptnu = sqrt(pxnu*pxnu +  pynu*pynu);
+	  
+  Double_t MT = sqrt(fabs((pt+ptnu)*(pt+ptnu) -(px+pxnu)*(px+pxnu)-(py+pynu)*(py+pynu)));
+
+  return MT;
+}
+
