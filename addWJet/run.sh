@@ -1,8 +1,7 @@
-SAMPLES="          \
+SAMPLES="QCDEM     \
 QCD                \  
 WJets              \
-ZJets              \
-"
+ZJets"
 
 
 for SAMPLE in $SAMPLES; do 

@@ -58,10 +58,11 @@ void doPlots_LeptonFR (bool correction, string rate, TString theSample="WJets", 
   if ( rate == "FR" || rate == "ALL" ) {
 
     if (theSample == "WJets") {
-      p_data_jetX = TFile::Open("WJets_FakeRate.root");
+      p_data_jetX = TFile::Open("rootfiles/WJets_FakeRate.root");
     } 
     else if (theSample == "QCD") { 
-      p_data_jetX = TFile::Open("QCD_FakeRate.root");
+      if ( lep == "Muon" ) p_data_jetX = TFile::Open("rootfiles/QCD_FakeRate.root");
+      if ( lep == "Electron" ) p_data_jetX = TFile::Open("rootfiles/QCDEM_FakeRate.root");
     }
 
 
@@ -150,18 +151,16 @@ void doPlots_LeptonFR (bool correction, string rate, TString theSample="WJets", 
     TH1F *Muon_fake_nPV_jet15 = (TH1F*) h_Muon_fake_nPV->Clone();
     TH1F *Muon_signal_nPV_jet15 = (TH1F*) h_Muon_signal_nPV->Clone();
     TH1F *Muon_FR_nPV_jet15 = (TH1F*) h_Muon_signal_nPV->Clone();
-
-    /*
-      TH1F *Muon_fake_jetEt_jet15 = (TH1F*) h_Muon_fake_jetEt->Clone();
-      TH1F *Muon_signal_jetEt_jet15 = (TH1F*) h_Muon_signal_jetEt->Clone();
-      TH1F *Muon_FR_jetEt_jet15 = (TH1F*) h_Muon_signal_jetEt->Clone();
-    */
-
+    
+    TH1F *Muon_fake_jetEt_jet15 = (TH1F*) h_Muon_fake_jetEt->Clone();
+    TH1F *Muon_signal_jetEt_jet15 = (TH1F*) h_Muon_signal_jetEt->Clone();
+    TH1F *Muon_FR_jetEt_jet15 = (TH1F*) h_Muon_signal_jetEt->Clone();
+    
 
     Muon_FR_pT_jet15->Divide(Muon_signal_pT_jet15,Muon_fake_pT_jet15,1.,1.,"B");
     Muon_FR_eta_jet15->Divide(Muon_signal_eta_jet15,Muon_fake_eta_jet15,1.,1.,"B");
     Muon_FR_nPV_jet15->Divide(Muon_signal_nPV_jet15,Muon_fake_nPV_jet15,1.,1.,"B");
-    //Muon_FR_jetEt_jet15->Divide(Muon_signal_jetEt_jet15,Muon_fake_jetEt_jet15,1.,1.,"B");
+    Muon_FR_jetEt_jet15->Divide(Muon_signal_jetEt_jet15,Muon_fake_jetEt_jet15,1.,1.,"B");
 
     TH2F *Muon_fake_pT_eta_jet15 = (TH2F*) h_Muon_fake_pt_eta_bin->Clone();
     TH2F *Muon_signal_pT_eta_jet15 = (TH2F*) h_Muon_signal_pt_eta_bin->Clone();
@@ -186,25 +185,21 @@ void doPlots_LeptonFR (bool correction, string rate, TString theSample="WJets", 
     TH1F *Ele_signal_nPV_jet15 = (TH1F*) h_Ele_signal_nPV->Clone();
     TH1F *Ele_FR_nPV_jet15 = (TH1F*) h_Ele_signal_nPV->Clone();
 
-
-    /*
-      TH1F *Ele_fake_jetEt_jet15 = (TH1F*) h_Ele_fake_jetEt->Clone();
-      TH1F *Ele_signal_jetEt_jet15 = (TH1F*) h_Ele_signal_jetEt->Clone();
-      TH1F *Ele_FR_jetEt_jet15 = (TH1F*) h_Ele_signal_jetEt->Clone();
-    */
-
+    TH1F *Ele_fake_jetEt_jet15 = (TH1F*) h_Ele_fake_jetEt->Clone();
+    TH1F *Ele_signal_jetEt_jet15 = (TH1F*) h_Ele_signal_jetEt->Clone();
+    TH1F *Ele_FR_jetEt_jet15 = (TH1F*) h_Ele_signal_jetEt->Clone();
+   
 
     Ele_FR_pT_jet15->Divide(Ele_signal_pT_jet15,Ele_fake_pT_jet15,1.,1.,"B");
     Ele_FR_eta_jet15->Divide(Ele_signal_eta_jet15,Ele_fake_eta_jet15,1.,1.,"B");
     Ele_FR_nPV_jet15->Divide(Ele_signal_nPV_jet15,Ele_fake_nPV_jet15,1.,1.,"B");
-    //Ele_FR_jetEt_jet15->Divide(Ele_signal_jetEt_jet15,Ele_fake_jetEt_jet15,1.,1.,"B");
+    Ele_FR_jetEt_jet15->Divide(Ele_signal_jetEt_jet15,Ele_fake_jetEt_jet15,1.,1.,"B");
 
-
-    /*
-      TH2F *Ele_fake_pT_eta_jet15 = (TH2F*) h_Ele_fake_pT_eta->Clone();
-      TH2F *Ele_signal_pT_eta_jet15 = (TH2F*) h_Ele_signal_pT_eta->Clone();
-      TH2F *Ele_FR_pT_eta_jet15 = (TH2F*) h_Ele_signal_pT_eta->Clone();
-    */
+    
+    TH2F *Ele_fake_pT_eta_jet15 = (TH2F*) h_Ele_fake_pt_eta_bin->Clone();
+    TH2F *Ele_signal_pT_eta_jet15 = (TH2F*) h_Ele_signal_pt_eta_bin->Clone();
+    TH2F *Ele_FR_pT_eta_jet15 = (TH2F*) h_Ele_signal_pt_eta_bin->Clone();
+    
   }
 
 
@@ -262,7 +257,7 @@ void doPlots_LeptonFR (bool correction, string rate, TString theSample="WJets", 
       tex2->Draw();
 
 
-      /*TCanvas * fake_jetEt_bin = new TCanvas("fake_jetEt_bin", "fake_jetEt_bin", 750, 750);
+      TCanvas * fake_jetEt_bin = new TCanvas("fake_jetEt_bin", "fake_jetEt_bin", 750, 750);
       fake_jetEt_bin->cd();
       
       DrawTH1F(fake_jetEt_bin, Muon_FR_jetEt_jet15,"E1","","jetEt (GeV/c)","#Tight / #Loose");
@@ -275,7 +270,7 @@ void doPlots_LeptonFR (bool correction, string rate, TString theSample="WJets", 
       
       tex1->Draw();
       tex2->Draw();
-      */
+      
 
 
       if (printout) {
@@ -380,7 +375,7 @@ void doPlots_LeptonFR (bool correction, string rate, TString theSample="WJets", 
       tex2->Draw();
      
 
-      /*TCanvas * fake_jetEt_bin = new TCanvas("fake_jetEt_bin", "fake_jetEt_bin", 750, 750);
+      TCanvas * fake_jetEt_bin = new TCanvas("fake_jetEt_bin", "fake_jetEt_bin", 750, 750);
       fake_jetEt_bin->cd();
       
       DrawTH1F(fake_jetEt_bin, Ele_FR_jetEt_jet15,"E1","","jetEt (GeV/c)","#Tight / #Loose");
@@ -393,8 +388,19 @@ void doPlots_LeptonFR (bool correction, string rate, TString theSample="WJets", 
       
       tex1->Draw();
       tex2->Draw();
-      */
+      
 
+      if (printout) {
+
+	EleFR_Data_file ->cd();
+
+	Ele_FR_pT_eta_jet15->Divide(Ele_signal_pT_eta_jet15, Ele_fake_pT_eta_jet15, 1., 1., "B");
+
+	cout << "-------- Results without MC corrections -------- " << endl;
+	print2D_PosEta(Ele_FR_pT_eta_jet15);     
+
+	Ele_FR_pT_eta_jet15->Write();
+      }
     }
 
   }
