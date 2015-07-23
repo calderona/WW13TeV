@@ -17,7 +17,7 @@ TString process[nProcesses];
 
 process[iZJets]  = "ZJets";
 process[iWJets]  = "WJets";
-process[iQCD]  = "QCD";
+process[iQCD]  = "QCDEM";
 
 
 
@@ -27,7 +27,7 @@ color[iZJets]  = kGreen+2;
 color[iWJets]  = kGray+1;
 color[iQCD]    = kAzure-5;
 
-Bool_t   _setLogy    = false;
+Bool_t   _setLogy    = true;
 
 
 //----------------------------------------------------------------
@@ -44,8 +44,7 @@ void doDataMC() {
   gStyle      ->SetPalette  (1);
 
   
-  gStyle->SetHatchesLineWidth(1.00);
-  gStyle->SetHatchesSpacing  (0.55);
+  
 
 
 
@@ -55,20 +54,31 @@ void doDataMC() {
   
   TString path = "rootfiles/";
   
-  for (UInt_t ip=0; ip<nProcesses; ip++) {
+  for (UInt_t ip=0; ip<nProcesses; ip++) 
     input[ip] = new TFile(path + process[ip] + "_FakeRate.root", "read");
-  }
+  
+
 
 
   // Distributions
   //----------------------------------------------------------------------------
  
-  if (1) { 
-    DrawHistogram("h_Muon_Mt", "M_{T}", 10, 0, "GeV", 0, 200);
-    DrawHistogram("h_Muon_Met", "MET", 10, 0, "GeV", 0, 200);
-    DrawHistogram("h_Muon_pt",  "p_{T}", 10, 0, "GeV", 15, 200);
-    DrawHistogram("h_Muon_jetEt",  "E_{T}", 10, 0, "GeV", 15, 200);
+  if (0) { 
+    DrawHistogram("h_Muon_signal_Mt", "M_{T}", 1, 0, "GeV", 0, 200);
+    DrawHistogram("h_Muon_signal_Mt_Met20", "M_{T}", 1, 0, "GeV", 0, 200);
+    DrawHistogram("h_Muon_signal_Met", "MET", 1, 0, "GeV", 0, 200);
+    DrawHistogram("h_Muon_signal_pt",  "p_{T}", 1, 0, "GeV", 15, 200);
+    DrawHistogram("h_Muon_signal_CRjetEt",  "E_{T}", 1, 0, "GeV", 15, 200);
   }
+
+ if (1) { 
+    DrawHistogram("h_Ele_fake_Mt", "M_{T}", 1, 0, "GeV", 0, 200);
+    DrawHistogram("h_Ele_fake_Mt_Met20", "M_{T}", 1, 0, "GeV", 0, 200);
+    DrawHistogram("h_Ele_fake_Met", "MET", 1, 0, "GeV", 0, 200);
+    DrawHistogram("h_Ele_fake_pt",  "p_{T}", 1, 0, "GeV", 15, 200);
+    DrawHistogram("h_Ele_fake_CRjetEt",  "E_{T}", 1, 0, "GeV", 15, 200);
+  }
+
 
 }
 
@@ -106,6 +116,8 @@ void DrawHistogram(TString  hname,
   for (UInt_t ip=0; ip<nProcesses; ip++) {
 
     hist[ip] = (TH1F*)input[ip]->Get(hname);
+   
+
     hist[ip]->SetName(hname + process[ip]);
 
     if (ngroup > 0) hist[ip]->Rebin(ngroup);
@@ -136,9 +148,79 @@ void DrawHistogram(TString  hname,
   Double_t yoffset = 0.048;
   Double_t x0      = 0.400; 
 
-  DrawLegend(0.73, 0.74 + 2.*(yoffset+0.001), hist[iQCD], " QCD ",    "lp", 0.035, 0.2, yoffset);
+  DrawLegend(0.73, 0.74 + 2.*(yoffset+0.001), hist[iQCD], " QCD ",    "f", 0.035, 0.2, yoffset);
   DrawLegend(0.73, 0.74 + 1.*(yoffset+0.001), hist[iWJets],   " W+Jets",      "f",  0.035, 0.2, yoffset);
   DrawLegend(0.73, 0.74,                      hist[iZJets],   " Z+Jets",      "f",  0.035, 0.2, yoffset);
  
 
+}
+
+//------------------------------------------------------------------------------
+// MoveOverflowBins
+//------------------------------------------------------------------------------
+void MoveOverflowBins(TH1* h,
+		      Double_t xmin,
+		      Double_t xmax) const
+{
+  UInt_t nbins = h->GetNbinsX();
+
+  TAxis* axis = (TAxis*)h->GetXaxis();
+  
+  Int_t firstBin = (xmin != -999) ? axis->FindBin(xmin) : 1;
+  Int_t lastBin  = (xmax != -999) ? axis->FindBin(xmax) : nbins;
+
+  Double_t firstVal = 0;
+  Double_t firstErr = 0;
+
+  Double_t lastVal = 0;
+  Double_t lastErr = 0;
+
+  for (UInt_t i=0; i<=nbins+1; i++) {
+
+    if (i <= firstBin) {
+      firstVal += h->GetBinContent(i);
+      firstErr += (h->GetBinError(i)*h->GetBinError(i));
+    }
+
+    if (i >= lastBin) {
+      lastVal += h->GetBinContent(i);
+      lastErr += (h->GetBinError(i)*h->GetBinError(i));
+    }
+
+    if (i < firstBin || i > lastBin) {
+      h->SetBinContent(i, 0);
+      h->SetBinError  (i, 0);
+    }
+  }
+
+  firstErr = sqrt(firstErr);
+  lastErr  = sqrt(lastErr);
+
+  h->SetBinContent(firstBin, firstVal);
+  h->SetBinError  (firstBin, firstErr);
+
+  h->SetBinContent(lastBin, lastVal);
+  h->SetBinError  (lastBin, lastErr);
+}
+
+
+//------------------------------------------------------------------------------
+// ZeroOutOfRangeBins
+//------------------------------------------------------------------------------
+void ZeroOutOfRangeBins(TH1* h, Double_t xmin, Double_t xmax) const
+{
+  UInt_t nbins = h->GetNbinsX();
+
+  TAxis* axis = (TAxis*)h->GetXaxis();
+  
+  Int_t firstBin = (xmin != -999) ? axis->FindBin(xmin) : 1;
+  Int_t lastBin  = (xmax != -999) ? axis->FindBin(xmax) : nbins;
+
+  for (UInt_t i=0; i<=nbins+1; i++) {
+
+    if (i < firstBin || i > lastBin) {
+      h->SetBinContent(i, 0);
+      h->SetBinError  (i, 0);
+    }
+  }
 }
