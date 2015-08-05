@@ -64,6 +64,7 @@ vector<float>   *std_vector_lepton_eta;
 vector<float>   *std_vector_lepton_phi;
 vector<float>   *std_vector_lepton_isTightMuon; 
 vector<float>   *std_vector_lepton_eleIdMedium; 
+vector<float>   *std_vector_lepton_eleIdVeto;
 vector<float>   *std_vector_lepton_chargedHadronIso; 
 vector<float>   *std_vector_lepton_photonIso;
 vector<float>   *std_vector_lepton_neutralHadronIso;
@@ -95,6 +96,10 @@ void LatinosTreeScriptLL(Float_t luminosity,
   // Counting histograms
   //----------------------------------------------------------------------------
   TH1F* hWTrigger     = new TH1F("hWTrigger",     "", 3, 0, 3);
+  TH1F* hWTriggerLL     = new TH1F("hWTriggerLL",     "", 3, 0, 3);
+  TH1F* hWTriggerA     = new TH1F("hWTriggerA",     "", 3, 0, 3);  
+  TH1F* hWTriggerB     = new TH1F("hWTriggerB",     "", 3, 0, 3);  
+  TH1F* hWTriggerC     = new TH1F("hWTriggerC",     "", 3, 0, 3);    
   TH1F* hWMetCut      = new TH1F("hWMetCut",      "", 3, 0, 3);
   TH1F* hWLowMinv     = new TH1F("hWLowMinv",     "", 3, 0, 3);
   TH1F* hWZVeto       = new TH1F("hWZVeto",       "", 3, 0, 3);
@@ -199,12 +204,12 @@ void LatinosTreeScriptLL(Float_t luminosity,
   TH1F* hFakeLeptonIsoWWLevelC = new TH1F("hFakeLeptonIsoWWLevelC", "", 100, 0, 1);
 
 
-   //----------------------------------------------------------------------------
+  //----------------------------------------------------------------------------
   // Input files
   //----------------------------------------------------------------------------
   TString filesPath;
 
-  filesPath = "/gpfs/csic_projects/cms/piedra/latino/25ns/";
+  filesPath = "/gpfs/csic_projects/cms/piedra/latino/RunII/MC_Spring15/25ns/";
 		 
 
   TChain* tree = new TChain("latino", "latino");
@@ -213,6 +218,9 @@ void LatinosTreeScriptLL(Float_t luminosity,
 
   if (theSample == "WJetsFakes_Total") {
     tree->Add("addWJet/output/latino_WJetsToLNu.root");
+  }
+  else if (theSample == "WJets") {
+    tree->Add(filesPath + "latino_WJetsToLNu.root");
   }
   else if (theSample == "WWTo2L2Nu_pow") {
     tree->Add(filesPath + "latino_WWTo2L2Nu.root");
@@ -223,7 +231,6 @@ void LatinosTreeScriptLL(Float_t luminosity,
   else {
     return;
   }
-
 
   // Declaration of leaf types
   //----------------------------------------------------------------------------
@@ -254,6 +261,7 @@ void LatinosTreeScriptLL(Float_t luminosity,
   tree->SetBranchAddress("std_vector_lepton_id", &std_vector_lepton_id);
   tree->SetBranchAddress("std_vector_lepton_isTightMuon", &std_vector_lepton_isTightMuon);
   tree->SetBranchAddress("std_vector_lepton_eleIdMedium", &std_vector_lepton_eleIdMedium);
+  tree->SetBranchAddress("std_vector_lepton_eleIdVeto", &std_vector_lepton_eleIdVeto);
   tree->SetBranchAddress("std_vector_lepton_chargedHadronIso", &std_vector_lepton_chargedHadronIso);
   tree->SetBranchAddress("std_vector_lepton_photonIso", &std_vector_lepton_photonIso);
   tree->SetBranchAddress("std_vector_lepton_neutralHadronIso", &std_vector_lepton_neutralHadronIso);
@@ -262,7 +270,7 @@ void LatinosTreeScriptLL(Float_t luminosity,
   tree->SetBranchAddress("std_vector_lepton_BestTrackdz", &std_vector_lepton_BestTrackdz);
   tree->SetBranchAddress("std_vector_lepton_BestTrackdxy", &std_vector_lepton_BestTrackdxy);
 
-  tree->SetBranchAddress("fakeW", &fakeW);
+  tree->SetBranchAddress("fakeWJet", &fakeW);
   tree->SetBranchAddress("puW", &puW);
   
 
@@ -282,14 +290,15 @@ void LatinosTreeScriptLL(Float_t luminosity,
   //----------------------------------------------------------------------------
   // Loop
   //----------------------------------------------------------------------------
-  for (int ievent=0; ievent<tree->GetEntries(); ievent++) {
-    
+  //  for (int ievent=0; ievent<tree->GetEntries(); ievent++) {
+    for (int ievent=0; ievent<1000000; ievent++) {
+
     tree->GetEntry(ievent);
     
     Double_t efficiencyW = effW * triggW;
     Double_t totalW      = -999;
 
-    totalW = 1.0;
+    totalW = baseW*luminosity;
 
 
     bool isSemi = 0; 
@@ -339,8 +348,8 @@ void LatinosTreeScriptLL(Float_t luminosity,
     // The selection begins here
     //--------------------------------------------------------------------------
     
-    if (pt2 <= 10) continue; // increase the pt of the leptons to further reduce Wjets 
-    if (pt1 <= 10) continue; // increase the pt of the leptons to further reduce Wjets 
+    if (pt2 <= 15) continue; // increase the pt of the leptons to further reduce Wjets 
+    if (pt1 <= 15) continue; // increase the pt of the leptons to further reduce Wjets 
     //if (ch1*ch2 > 0) continue;
     if (!passLooseIDISO1) continue;
     if (!passLooseIDISO2) continue;
@@ -364,11 +373,11 @@ void LatinosTreeScriptLL(Float_t luminosity,
 
 
      
-      if ( true) { 
+      if ( true ) { 
 
      	//if ( pfmet > 20 )  {	  
-
-	  hPtLepton1WWLevelLL      ->Fill(pt1,          totalW*fakeW);
+	hWTriggerLL ->Fill(1,      totalW*fakeW);
+	hPtLepton1WWLevelLL      ->Fill(pt1,          totalW*fakeW);
 	  hPtLepton2WWLevelLL      ->Fill(pt2,          totalW*fakeW);
 	  hPtDiLeptonWWLevelLL     ->Fill(ptll,         totalW*fakeW);
 	  hMinvWWLevelLL           ->Fill(mll,          totalW*fakeW);
@@ -385,7 +394,8 @@ void LatinosTreeScriptLL(Float_t luminosity,
 	  //}
 
 	  if ( passIDISO1 && passIDISO2 ) { //&&  isSemi == 1) { //&& pfmet > 20 )  {
-     
+	    
+	    hWTriggerA ->Fill(1,      totalW);
 	    hPtLepton1WWLevelA      ->Fill(pt1,       totalW);
 	    hPtLepton2WWLevelA      ->Fill(pt2,       totalW);
 	    hPtDiLeptonWWLevelA     ->Fill(ptll,      totalW);
@@ -405,6 +415,7 @@ void LatinosTreeScriptLL(Float_t luminosity,
 	
 	  if ( (passIDISO1 && !passIDISO2) || (!passIDISO1 && passIDISO2) ) {
 	    
+	    hWTriggerB ->Fill(1,      totalW);
 	    hpfMetWWLevelBNoMET          ->Fill(pfType1Met,     totalW); 
 	    
 	    hPtLepton1WWLevelB      ->Fill(pt1,       totalW);
@@ -425,6 +436,7 @@ void LatinosTreeScriptLL(Float_t luminosity,
 	
 	  if ( !passIDISO1 && !passIDISO2)  { // && pfmet > 20 ) { 
 	    
+	    hWTriggerC ->Fill(1,      totalW);
 	    hPtLepton1WWLevelC      ->Fill(pt1,       totalW);
 	    hPtLepton2WWLevelC      ->Fill(pt2,       totalW);
 	    hPtDiLeptonWWLevelC     ->Fill(ptll,      totalW);
@@ -458,6 +470,13 @@ void LatinosTreeScriptLL(Float_t luminosity,
 
     float norm = 1933235;
   
+
+  //// OUTPUT 
+
+  cout << "LL:  "  << hWTriggerLL->GetSumOfWeights() << endl;
+  cout << "TT:  "  << hWTriggerA->GetSumOfWeights() << endl;
+  cout << "TnoT:  "  << hWTriggerB->GetSumOfWeights() << endl;
+  cout << "noTnoT:  "  << hWTriggerC->GetSumOfWeights() << endl;
   }
  
    
@@ -468,6 +487,8 @@ void LatinosTreeScriptLL(Float_t luminosity,
   output->Write("", TObject::kOverwrite);
   output->Close();
   
+  
+
 }
 
 
@@ -484,7 +505,7 @@ bool IsTightLepton(int k)
   // Muon tight ID
   if (fabs(std_vector_lepton_id->at(k)) == 13)
     {
-      bool dxyCut = 0;
+      float dxyCut = 0;
 	
       if ( std_vector_lepton_pt->at(k) < 20 ) { 
 	dxyCut = 0.01;
@@ -500,7 +521,7 @@ bool IsTightLepton(int k)
   // Electron cut based medium ID
   else if (fabs(std_vector_lepton_id->at(k)) == 11)
     {
-      is_tight_lepton = true;//std_vector_lepton_eleIdMedium->at(k);
+      is_tight_lepton = std_vector_lepton_eleIdMedium->at(k);
     }
   
   return is_tight_lepton;
@@ -583,7 +604,7 @@ bool IsLooseIsolatedLepton(int k)
   bool is_isolated_lepton = false;
 
   if      (fabs(id) == 11) is_isolated_lepton = true;  //(ElectronIsolation(k) < 0.15);
-  else if (fabs(id) == 13) is_isolated_lepton = (MuonIsolation(k)     < 0.4);
+  else if (fabs(id) == 13) is_isolated_lepton = (MuonIsolation(k)     < 0.5);
   
   return is_isolated_lepton;
 }
@@ -609,7 +630,7 @@ bool IsLooseLepton(int k)
   // Electron cut based medium ID
   else if (fabs(std_vector_lepton_id->at(k)) == 11)
     {
-      is_loose_lepton = true;//std_vector_lepton_eleIdMedium->at(k);
+      is_loose_lepton = std_vector_lepton_eleIdVeto->at(k);
     }
 
   return is_loose_lepton;
