@@ -92,6 +92,7 @@ vector<float>   *std_vector_lepton_eta;
 vector<float>   *std_vector_lepton_phi;
 vector<float>   *std_vector_lepton_isTightMuon; 
 vector<float>   *std_vector_lepton_eleIdMedium; 
+vector<float>   *std_vector_lepton_eleIdVeto; 
 vector<float>   *std_vector_lepton_chargedHadronIso; 
 vector<float>   *std_vector_lepton_photonIso;
 vector<float>   *std_vector_lepton_neutralHadronIso;
@@ -112,7 +113,7 @@ int addWJetsWeights(string input="latino_ll_LP_test.root",
 		    bool addWeight=false, 
 		    string signal = "WW") {
 
-  // /gpfs/csic_projects/cms/piedra/latino/25ns/latino_WJetsToLNu.root
+  //  addWJetsWeights("latino_WJetsToLNu.root", 1.0, "/gpfs/csic_projects/cms/piedra/latino/RunII/MC_Spring15/25ns/", "output/", true)
 
 
   printf("Start W+jets weights with %s, lumi=%.3f, indir=%s, outdir=%s, addWeight option %d\n",
@@ -164,12 +165,15 @@ int addWJetsWeights(string input="latino_ll_LP_test.root",
 
   ElecPR = LoadHistogram("ElePR_2012", "h2inverted", "ElecPR");
  
-  MuonFR = LoadHistogram(Form("MuFR_Moriond13_jet%s_EWKcorr", muonJetPt.Data()),
-			 "FR_pT_eta_EWKcorr", Form("MuonFR_Jet%s", muonJetPt.Data()));
 
-  ElecFR = LoadHistogram(Form("EleFR_Moriond13_jet%s_EWKcorr", elecJetPt.Data()),
-			 "fakeElH2", Form("ElecFR_Jet%s", elecJetPt.Data()));
+  MuonFR = LoadHistogram("MuFR_RunII_50ns", "h_Muon_signal_pt_eta_bin",  "MuonFR");
+  //  MuonFR = LoadHistogram(Form("MuFR_Moriond13_jet%s_EWKcorr", muonJetPt.Data()),
+  //	 "FR_pT_eta_EWKcorr", Form("MuonFR_Jet%s", muonJetPt.Data()));
 
+  //ElecFR = LoadHistogram(Form("EleFR_Moriond13_jet%s_EWKcorr", elecJetPt.Data()),
+  // 			 "fakeElH2", Form("ElecFR_Jet%s", elecJetPt.Data()));
+
+  ElecFR = LoadHistogram("EleFR_RunII_25ns", "h_Ele_signal_pt_eta_bin", "ElecFR");
 
  
  //--- OPEN LOOSE-LOOSE FILE 
@@ -193,6 +197,7 @@ int addWJetsWeights(string input="latino_ll_LP_test.root",
  tree->SetBranchAddress("std_vector_lepton_id", &std_vector_lepton_id);
  tree->SetBranchAddress("std_vector_lepton_isTightMuon", &std_vector_lepton_isTightMuon);
  tree->SetBranchAddress("std_vector_lepton_eleIdMedium", &std_vector_lepton_eleIdMedium);
+ tree->SetBranchAddress("std_vector_lepton_eleIdVeto", &std_vector_lepton_eleIdVeto);
  tree->SetBranchAddress("std_vector_lepton_chargedHadronIso", &std_vector_lepton_chargedHadronIso);
  tree->SetBranchAddress("std_vector_lepton_photonIso", &std_vector_lepton_photonIso);
  tree->SetBranchAddress("std_vector_lepton_neutralHadronIso", &std_vector_lepton_neutralHadronIso);
@@ -278,7 +283,7 @@ int addWJetsWeights(string input="latino_ll_LP_test.root",
 
  unsigned int countEntriesByHand(0);
  unsigned int countEntriesByHand2(0);
-
+ nentries=1000000;
   for (Long64_t jentry=0; jentry<nentries;jentry++) {
     
     tree->GetEntry(jentry);
@@ -343,8 +348,9 @@ int addWJetsWeights(string input="latino_ll_LP_test.root",
       if (lep.flavor == Electron)
 	{
 	  lep.pr    = GetFactor(ElecPR,       pt, eta);
-	  lep.fr    = GetFactor(ElecFR,       pt, eta);
+	  lep.fr    = GetFactor(ElecFR,       pt, eta, 29.);
  
+	  //cout << pt << ", " << eta << ", " << lep.fr << endl;
 	}
       //------------------------------------------------------------------------
       //
@@ -354,7 +360,7 @@ int addWJetsWeights(string input="latino_ll_LP_test.root",
       else if (lep.flavor == Muon)
 	{
 	  lep.pr    = GetFactor(MuonPR,        pt, eta);
-	  lep.fr    = GetFactor(MuonFR,        pt, eta, 34.);
+	  lep.fr    = GetFactor(MuonFR,        pt, eta, 24.);
 	  
 	}
       else if (lep.flavor == Unknown ) { 
@@ -418,7 +424,7 @@ int addWJetsWeights(string input="latino_ll_LP_test.root",
 
     //------ summing the weights only for those events passing the full selection
 
-    bool commonSel =  std_vector_lepton_pt ->at(0) > 10 && std_vector_lepton_pt ->at(1) > 10;//(AnalysisLeptons[0].charge*AnalysisLeptons[1].charge < 0) && std_vector_lepton_pt ->at(0) > 10 && std_vector_lepton_pt ->at(1) > 10;
+    bool commonSel =  std_vector_lepton_pt ->at(0) > 15 && std_vector_lepton_pt ->at(1) > 15;//(AnalysisLeptons[0].charge*AnalysisLeptons[1].charge < 0) && std_vector_lepton_pt ->at(0) > 10 && std_vector_lepton_pt ->at(1) > 10;
 
     if(commonSel) {
       
@@ -572,17 +578,28 @@ bool IsTightLepton(int k)
   // Muon tight ID
   if (fabs(std_vector_lepton_id->at(k)) == 13)
     {
-      is_tight_lepton = std_vector_lepton_isTightMuon->at(k);
-    }
+      float dxyCut = 0;
+	
+      if ( std_vector_lepton_pt->at(k) < 20 ) { 
+	dxyCut = 0.01;
+      }	else {
+	dxyCut = 0.02;
+      }
+
+      is_tight_lepton = ( std_vector_lepton_isTightMuon->at(k)              && 
+			  fabs(std_vector_lepton_BestTrackdz->at(k))  < 0.1       && 
+			  fabs(std_vector_lepton_BestTrackdxy->at(k)) < dxyCut );
+	}
+
   // Electron cut based medium ID
   else if (fabs(std_vector_lepton_id->at(k)) == 11)
     {
-      is_tight_lepton = true;//std_vector_lepton_eleIdMedium->at(k);
+      is_tight_lepton = std_vector_lepton_eleIdMedium->at(k);
     }
-
+  
   return is_tight_lepton;
-}
 
+}
 
 //------------------------------------------------------------------------------
 // MuonIsolation
@@ -671,7 +688,7 @@ bool IsLooseLepton(int k)
   // Electron cut based medium ID
   else if (fabs(std_vector_lepton_id->at(k)) == 11)
     {
-      is_loose_lepton = true;//std_vector_lepton_eleIdMedium->at(k);
+      is_loose_lepton = std_vector_lepton_eleIdVeto->at(k);
     }
 
   return is_loose_lepton;
@@ -689,7 +706,7 @@ bool IsLooseIsolatedLepton(int k)
   bool is_isolated_lepton = false;
 
   if      (fabs(id) == 11) is_isolated_lepton = true;  //(ElectronIsolation(k) < 0.15);
-  else if (fabs(id) == 13) is_isolated_lepton = (MuonIsolation(k)     < 0.4);
+  else if (fabs(id) == 13) is_isolated_lepton = (MuonIsolation(k)     < 0.5);
   
   return is_isolated_lepton;
 }

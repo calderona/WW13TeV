@@ -6,23 +6,25 @@
 #include "TSystem.h"
 #include "TTree.h"
 
-const UInt_t nProcesses = 3;
+const UInt_t nProcesses = 4;
 
-enum {iZJets, iWJets, iQCD};
+enum {iData, iZJets, iWJets, iQCD};
 
 
 TFile* input[nProcesses];
 
 TString process[nProcesses];
 
+process[iData]  = "dataEG";
 process[iZJets]  = "ZJets";
 process[iWJets]  = "WJets";
-process[iQCD]  = "QCDEM";
+process[iQCD]  = "QCD";
 
 
 
 Color_t color[nProcesses];
 
+color[iData] = kBlack;
 color[iZJets]  = kGreen+2;
 color[iWJets]  = kGray+1;
 color[iQCD]    = kAzure-5;
@@ -64,11 +66,11 @@ void doDataMC() {
   //----------------------------------------------------------------------------
  
   if (0) { 
-    DrawHistogram("h_Muon_signal_Mt", "M_{T}", 1, 0, "GeV", 0, 200);
-    DrawHistogram("h_Muon_signal_Mt_Met20", "M_{T}", 1, 0, "GeV", 0, 200);
-    DrawHistogram("h_Muon_signal_Met", "MET", 1, 0, "GeV", 0, 200);
-    DrawHistogram("h_Muon_signal_pt",  "p_{T}", 1, 0, "GeV", 15, 200);
-    DrawHistogram("h_Muon_signal_CRjetEt",  "E_{T}", 1, 0, "GeV", 15, 200);
+    DrawHistogram("h_Muon_fake_Mt", "M_{T}", 1, 0, "GeV", 0, 200);
+    DrawHistogram("h_Muon_fake_Mt_Met20", "M_{T}", 1, 0, "GeV", 0, 200);
+    DrawHistogram("h_Muon_fake_Met", "MET", 1, 0, "GeV", 0, 200);
+    DrawHistogram("h_Muon_fake_pt",  "p_{T}", 1, 0, "GeV", 15, 200);
+    DrawHistogram("h_Muon_fake_CRjetEt",  "E_{T}", 1, 0, "GeV", 15, 200);
   }
 
  if (1) { 
@@ -125,22 +127,48 @@ void DrawHistogram(TString  hname,
     if (moveOverflow) MoveOverflowBins  (hist[ip], xmin, xmax);
     else              ZeroOutOfRangeBins(hist[ip], xmin, xmax);
     
-    
-    hist[ip]->SetFillColor(color[ip]);
-    hist[ip]->SetFillStyle(1001);
-    hist[ip]->SetLineColor(color[ip]);
+    if (ip == iData) {
+      hist[ip]->SetMarkerStyle(kFullCircle);
+    } 
+    else {
+
+      hist[ip]->Scale(40.03/1000);
+
+      hist[ip]->SetFillColor(color[ip]);
+      hist[ip]->SetFillStyle(1001);
+      hist[ip]->SetLineColor(color[ip]);
      
       hstack->Add(hist[ip]);
+    }
   }
+  
 
 
+  // Axis labels
+  //----------------------------------------------------------------------------
+  TAxis* xaxis = hist[iData]->GetXaxis();
+  TAxis* yaxis = hist[iData]->GetYaxis();
 
+  TString ytitle = Form("entries / %s.%df", "%", precision);
+
+  xaxis->SetTitle(xtitle);
+  yaxis->SetTitle(Form(ytitle.Data(), hist[iData]->GetBinWidth(0)));
+  yaxis->SetTitleOffset(1.6);
+
+  if (!units.Contains("NULL")) {
+    
+    xaxis->SetTitle(Form("%s [%s]", xaxis->GetTitle(), units.Data()));
+    yaxis->SetTitle(Form("%s %s",   yaxis->GetTitle(), units.Data()));
+  }
 
 
   // Draw
   //----------------------------------------------------------------------------
- 
-  hstack     ->Draw("hist");
+  xaxis->SetRangeUser(xmin, xmax);
+
+  hist[iData]->Draw("ep");
+  hstack     ->Draw("hist, same");
+  hist[iData]->Draw("ep, same");
 
 
   // Legend
@@ -148,7 +176,7 @@ void DrawHistogram(TString  hname,
   Double_t yoffset = 0.048;
   Double_t x0      = 0.400; 
 
-  DrawLegend(0.73, 0.74 + 2.*(yoffset+0.001), hist[iQCD], " QCD ",    "f", 0.035, 0.2, yoffset);
+  //DrawLegend(0.73, 0.74 + 2.*(yoffset+0.001), hist[iQCD], " QCD ",    "f", 0.035, 0.2, yoffset);
   DrawLegend(0.73, 0.74 + 1.*(yoffset+0.001), hist[iWJets],   " W+Jets",      "f",  0.035, 0.2, yoffset);
   DrawLegend(0.73, 0.74,                      hist[iZJets],   " Z+Jets",      "f",  0.035, 0.2, yoffset);
  

@@ -17,7 +17,7 @@ TFile* input[nProcesses];
 TString process[nProcesses];
 
 process[iWJets]  = "WJets_FR";
-process[iQCD]  = "QCDEM";
+process[iQCD]  = "QCD";
 
 
 Color_t color[nProcesses];
@@ -39,10 +39,13 @@ void doCompare(TString lep = "Muon" ) {
   gStyle      ->SetPalette  (1);
 
 
-  bool doFRvsPt_bin = 1;
-  bool doFRvsEta_bin = 1;
-  bool doFRvsPV = 1;
-
+  bool doFRvsPt_bin = 0;
+  bool doFRvsEta_bin = 0;
+  bool doFRvsPV = 0;
+  bool doFRvsptIso = 0;
+  bool doFRvssip3d = 1;
+  bool doFRvsJetEt = 0;
+  bool doJetEt = 0; 
 
 //------------------------------------------------------------------------------
 // Files and variables
@@ -66,7 +69,20 @@ void doCompare(TString lep = "Muon" ) {
   TH1F* hist_fake_pv[nProcesses];
   TH1F* hist_signal_pv[nProcesses];
   TH1F* hist_FR_pv[nProcesses];
+  
+  TH1F* hist_fake_jetet[nProcesses];
+  TH1F* hist_signal_jetet[nProcesses];
+  TH1F* hist_FR_jetet[nProcesses];
 
+  TH1F* hist_fake_ptIso[nProcesses];
+  TH1F* hist_signal_ptIso[nProcesses];
+  TH1F* hist_FR_ptIso[nProcesses];
+
+  TH1F* hist_fake_sip3d[nProcesses];
+  TH1F* hist_signal_sip3d[nProcesses];
+  TH1F* hist_FR_sip3d[nProcesses];
+
+  TH1F* hist_jetEt[nProcesses];
 
  
   for (UInt_t ip=0; ip<nProcesses; ip++) {
@@ -85,7 +101,21 @@ void doCompare(TString lep = "Muon" ) {
       hist_signal_pv[ip] = (TH1F*)input[ip]->Get("h_Muon_signal_nPV");
       hist_FR_pv[ip] = (TH1F*)input[ip]->Get("h_Muon_signal_nPV");
       
-     
+      hist_fake_jetet[ip] = (TH1F*)input[ip]->Get("h_Muon_fake_jetEt");
+      hist_signal_jetet[ip] = (TH1F*)input[ip]->Get("h_Muon_signal_jetEt");
+      hist_FR_jetet[ip] = (TH1F*)input[ip]->Get("h_Muon_signal_jetEt");
+      
+      hist_jetEt[ip] =  (TH1F*)input[ip]->Get("h_Muon_jetEt");
+      hist_jetEt[ip]->Scale(1./hist_jetEt[ip]->Integral());
+
+      hist_fake_ptIso[ip] = (TH1F*)input[ip]->Get("h_Muon_fake_ptIso");
+      hist_signal_ptIso[ip] = (TH1F*)input[ip]->Get("h_Muon_signal_ptIso");
+      hist_FR_ptIso[ip] = (TH1F*)input[ip]->Get("h_Muon_signal_ptIso");
+
+      hist_fake_sip3d[ip] = (TH1F*)input[ip]->Get("h_Muon_fake_sip3d");
+      hist_signal_sip3d[ip] = (TH1F*)input[ip]->Get("h_Muon_signal_sip3d");
+      hist_FR_sip3d[ip] = (TH1F*)input[ip]->Get("h_Muon_signal_sip3d");
+
     }     else {
 
       hist_fake_pt[ip] = (TH1F*)input[ip]->Get("h_Ele_fake_pT_bin");
@@ -99,13 +129,29 @@ void doCompare(TString lep = "Muon" ) {
       hist_fake_pv[ip] = (TH1F*)input[ip]->Get("h_Ele_fake_nPV");
       hist_signal_pv[ip] = (TH1F*)input[ip]->Get("h_Ele_signal_nPV");
       hist_FR_pv[ip] = (TH1F*)input[ip]->Get("h_Ele_signal_nPV");
+
+      hist_fake_jetet[ip] = (TH1F*)input[ip]->Get("h_Ele_fake_jetEt");
+      hist_signal_jetet[ip] = (TH1F*)input[ip]->Get("h_Ele_signal_jetEt");
+      hist_FR_jetet[ip] = (TH1F*)input[ip]->Get("h_Ele_signal_jetEt");
+
+      hist_fake_ptIso[ip] = (TH1F*)input[ip]->Get("h_Ele_fake_ptIso");
+      hist_signal_ptIso[ip] = (TH1F*)input[ip]->Get("h_Ele_signal_ptIso");
+      hist_FR_ptIso[ip] = (TH1F*)input[ip]->Get("h_Ele_signal_ptIso");
+
+      hist_fake_sip3d[ip] = (TH1F*)input[ip]->Get("h_Ele_fake_sip3d");
+      hist_signal_sip3d[ip] = (TH1F*)input[ip]->Get("h_Ele_signal_sip3d");
+      hist_FR_sip3d[ip] = (TH1F*)input[ip]->Get("h_Ele_signal_sip3d");
     }
 
 
     hist_FR_pt[ip]->Divide(hist_signal_pt[ip],hist_fake_pt[ip],1.,1.,"");
     hist_FR_eta[ip]->Divide(hist_signal_eta[ip],hist_fake_eta[ip],1.,1.,"");
     hist_FR_pv[ip]->Divide(hist_signal_pv[ip],hist_fake_pv[ip],1.,1.,"");
-  }
+    hist_FR_jetet[ip]->Divide(hist_signal_jetet[ip],hist_fake_jetet[ip],1.,1.,"");
+    hist_FR_ptIso[ip]->Divide(hist_signal_ptIso[ip],hist_fake_ptIso[ip],1.,1.,"");
+  
+    hist_FR_sip3d[ip]->Divide(hist_signal_sip3d[ip],hist_fake_sip3d[ip],1.,1.,"");
+}
 
 
 
@@ -138,6 +184,59 @@ void doCompare(TString lep = "Muon" ) {
      //Muon_FR_pT_Mu9->SetAxisRange(0,1,"Y");
    }
 
+
+ if (doFRvsptIso) 
+   {
+
+     TCanvas * fake_ptIso = new TCanvas("fake_ptIso", "fake_ptIso", 750, 750);
+     fake_ptIso->cd();
+
+
+     DrawTH1F(fake_ptIso, hist_FR_ptIso[iQCD],"","","pT*(1+Iso)","#Tight / #Loose");
+     LineOpt(hist_FR_ptIso[iQCD],kBlack,2,kSolid);
+     MarkerOpt(hist_FR_ptIso[iQCD],kBlack,1,kFullCircle);
+     
+     
+     DrawTH1F(fake_ptIso, hist_FR_ptIso[iWJets],"sameE1","","pT (GeV/c)","#Tight / #Loose");
+     LineOpt(hist_FR_ptIso[iWJets],kRed,2,kSolid);
+     MarkerOpt(hist_FR_ptIso[iWJets],kRed,1,kFullCircle);
+     
+     
+     DrawLegend(0.25,0.8,hist_FR_ptIso[iQCD] , " QCD", "LP",0.050,0.24, 0.10);
+     DrawLegend(0.25,0.7,hist_FR_ptIso[iWJets] , " W+Jets ", "LP",0.050,0.24, 0.10);
+     
+     hist_FR_ptIso[iQCD]->SetTitleSize(0.05,"Y");
+     hist_FR_ptIso[iQCD]->SetTitleSize(0.05,"X");
+     
+     //Muon_FR_pT_Mu9->SetAxisRange(0,1,"Y");
+   }
+
+
+ if (doFRvssip3d) 
+   {
+
+     TCanvas * fake_sip3d = new TCanvas("fake_sip3d", "fake_sip3d", 750, 750);
+     fake_sip3d->cd();
+
+
+     DrawTH1F(fake_sip3d, hist_FR_sip3d[iQCD],"","","SIP3D","#Tight / #Loose");
+     LineOpt(hist_FR_sip3d[iQCD],kBlack,2,kSolid);
+     MarkerOpt(hist_FR_sip3d[iQCD],kBlack,1,kFullCircle);
+     
+     
+     DrawTH1F(fake_sip3d, hist_FR_sip3d[iWJets],"sameE1","","pT (GeV/c)","#Tight / #Loose");
+     LineOpt(hist_FR_sip3d[iWJets],kRed,2,kSolid);
+     MarkerOpt(hist_FR_sip3d[iWJets],kRed,1,kFullCircle);
+     
+     
+     DrawLegend(0.25,0.8,hist_FR_sip3d[iQCD] , " QCD", "LP",0.050,0.24, 0.10);
+     DrawLegend(0.25,0.7,hist_FR_sip3d[iWJets] , " W+Jets ", "LP",0.050,0.24, 0.10);
+     
+     hist_FR_sip3d[iQCD]->SetTitleSize(0.05,"Y");
+     hist_FR_sip3d[iQCD]->SetTitleSize(0.05,"X");
+     
+     //Muon_FR_pT_Mu9->SetAxisRange(0,1,"Y");
+   }
 
 
 
@@ -181,7 +280,7 @@ void doCompare(TString lep = "Muon" ) {
      MarkerOpt(hist_FR_pv[iQCD],kBlack,1,kFullCircle);
      
      
-     DrawTH1F(fake_pv_bin, hist_FR_pv[iWJets],"sameE1","","pv (GeV/c)","#Tight / #Loose");
+     DrawTH1F(fake_pv_bin, hist_FR_pv[iWJets],"sameE1","","pv ","#Tight / #Loose");
      LineOpt(hist_FR_pv[iWJets],kRed,2,kSolid);
      MarkerOpt(hist_FR_pv[iWJets],kRed,1,kFullCircle);
      
@@ -191,6 +290,59 @@ void doCompare(TString lep = "Muon" ) {
      
      hist_FR_pv[iQCD]->SetTitleSize(0.05,"Y");
      hist_FR_pv[iQCD]->SetTitleSize(0.05,"X");
+     
+     //Muon_FR_et_Mu9->SetAxisRange(0,1,"Y");
+   }
+
+ if (doFRvsJetEt) 
+   {
+
+     TCanvas * fake_jetet_bin = new TCanvas("fake_jetet_bin", "fake_jetet_bin", 750, 750);
+     fake_jetet_bin->cd();
+
+
+     DrawTH1F(fake_jetet_bin, hist_FR_jetet[iQCD],"","","jetet (GeV/c)","#Tight / #Loose");
+     LineOpt(hist_FR_jetet[iQCD],kBlack,2,kSolid);
+     MarkerOpt(hist_FR_jetet[iQCD],kBlack,1,kFullCircle);
+     
+     
+     DrawTH1F(fake_jetet_bin, hist_FR_jetet[iWJets],"sameE1","","jetet ","#Tight / #Loose");
+     LineOpt(hist_FR_jetet[iWJets],kRed,2,kSolid);
+     MarkerOpt(hist_FR_jetet[iWJets],kRed,1,kFullCircle);
+     
+     
+     DrawLegend(0.25,0.8,hist_FR_jetet[iQCD] , " QCD", "LP",0.050,0.24, 0.10);
+     DrawLegend(0.25,0.7,hist_FR_jetet[iWJets] , " W+Jets ", "LP",0.050,0.24, 0.10);
+     
+     hist_FR_jetet[iQCD]->SetTitleSize(0.05,"Y");
+     hist_FR_jetet[iQCD]->SetTitleSize(0.05,"X");
+     
+     //Muon_FR_et_Mu9->SetAxisRange(0,1,"Y");
+   }
+
+
+ if (doJetEt) 
+   {
+
+     TCanvas * fake_jetEt = new TCanvas("fake_jetEt", "fake_jetEt", 750, 750);
+     fake_jetEt->cd();
+
+
+     DrawTH1F(fake_jetEt, hist_jetEt[iQCD],"hist","","E_{T} (GeV/c)","#Tight / #Loose");
+     LineOpt(hist_jetEt[iQCD],kBlack,2,kSolid);
+     MarkerOpt(hist_jetEt[iQCD],kBlack,1,kFullCircle);
+     
+     
+     DrawTH1F(fake_jetEt, hist_jetEt[iWJets],"histsame","","E_{T} (GeV/c)","#Tight / #Loose");
+     LineOpt(hist_jetEt[iWJets],kRed,2,kSolid);
+     MarkerOpt(hist_jetEt[iWJets],kRed,1,kFullCircle);
+     
+     
+     DrawLegend(0.75,0.8,hist_jetEt[iQCD] , " QCD", "LP",0.050,0.24, 0.10);
+     DrawLegend(0.75,0.7,hist_jetEt[iWJets] , " W+Jets ", "LP",0.050,0.24, 0.10);
+     
+     hist_jetEt[iQCD]->SetTitleSize(0.05,"Y");
+     hist_jetEt[iQCD]->SetTitleSize(0.05,"X");
      
      //Muon_FR_et_Mu9->SetAxisRange(0,1,"Y");
    }

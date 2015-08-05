@@ -60,11 +60,23 @@ void doPlots_LeptonFR (bool correction, string rate, TString theSample="WJets", 
     if (theSample == "WJets") {
       p_data_jetX = TFile::Open("rootfiles/WJets_FakeRate.root");
     } 
-    else if (theSample == "QCD") { 
-      if ( lep == "Muon" ) p_data_jetX = TFile::Open("rootfiles/QCD_FakeRate.root");
-      if ( lep == "Electron" ) p_data_jetX = TFile::Open("rootfiles/QCDEM_FakeRate.root");
+    else if (theSample == "WJets_FR") {
+      p_data_jetX = TFile::Open("rootfiles/WJets_FR_FakeRate.root");
     }
-
+    else if (theSample == "Top_FR") {
+      p_data_jetX = TFile::Open("rootfiles/Top_FR_FakeRate.root");
+    }
+    else if (theSample == "SingleTop") {
+      p_data_jetX = TFile::Open("rootfiles/SingleTop_FakeRate.root");
+    }
+    else if (theSample == "QCD") { 
+      if ( lep == "Muon" ) p_data_jetX = TFile::Open("rootfiles/QCD_NoB_FakeRate.root");
+      if ( lep == "Electron" ) p_data_jetX = TFile::Open("rootfiles.25ns/QCDEM_FakeRate.root");
+    }
+    else if (theSample == "data") { 
+      if ( lep == "Muon" ) p_data_jetX = TFile::Open("rootfiles/QCD_FakeRate.root");
+      if ( lep == "Electron" ) p_data_jetX = TFile::Open("rootfiles/dataEG_FakeRate.root");
+    }
 
   } else if ( rate == "PR" || rate == "ALL" ) {
    
