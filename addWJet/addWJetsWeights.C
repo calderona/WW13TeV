@@ -22,6 +22,7 @@
 
 #include <algorithm>
 
+
 using namespace std;
 
 
@@ -65,16 +66,20 @@ double eta(double prompt);
 
 enum {Muon, Electron, Unknown};
 
-enum {Tight, noTight};
+enum {noTight, Tight};
 
-enum ch {mm=0,ee=1,em=2,me=3};
+int ch;
+ 
+enum {mm=0,ee=1,em=2,me=3};
 
 struct Lepton { 
 
   UInt_t         index;
-  UInt_t         flavor;  // Muon, Electron
+  UInt_t         flavour;  // Muon, Electron
   UInt_t         type;    // Tight, Loose
   Float_t        charge;
+  Float_t        pt;
+  Float_t        eta;
   Float_t        fr;
   Float_t        pr;
 
@@ -86,11 +91,13 @@ std::vector<Lepton> AnalysisLeptons;
 Float_t          jetRho;
 Float_t          channel;
 Float_t          baseW;
-vector<float>   *std_vector_lepton_id;
+Float_t          trigger;
+vector<float>   *std_vector_lepton_flavour;
 vector<float>   *std_vector_lepton_pt;
 vector<float>   *std_vector_lepton_eta;
 vector<float>   *std_vector_lepton_phi;
 vector<float>   *std_vector_lepton_isTightMuon; 
+vector<float>   *std_vector_lepton_isMediumMuon; 
 vector<float>   *std_vector_lepton_eleIdMedium; 
 vector<float>   *std_vector_lepton_eleIdVeto; 
 vector<float>   *std_vector_lepton_chargedHadronIso; 
@@ -113,8 +120,10 @@ int addWJetsWeights(string input="latino_ll_LP_test.root",
 		    bool addWeight=false, 
 		    string signal = "WW") {
 
-  //  addWJetsWeights("latino_WJetsToLNu.root", 1.0, "/gpfs/csic_projects/cms/piedra/latino/RunII/MC_Spring15/25ns/", "output/", true)
+  //addWJetsWeights("latino_Run2015D_05Oct2015_DoubleMuon_0.root", 1.0, "/gpfs/csic_projects/tier3data/LatinosSkims/RunII/Data13TeV/21Oct/25ns/","output/", true, "WW"); 
 
+  //  addWJetsWeights("latino_WJetsToLNu.root", 1.0, ""/gpfs/csic_projects/tier3data/LatinosSkims/RunII/MC_Spring15/21Oct/25ns/, "output/", true, "WW"); 
+ //  addWJetsWeights("latino_WJetsToLNu.root", 1.0, "/gpfs/csic_projects/tier3data/LatinosSkims/RunII/cernbox/21Oct_25ns_MC__l2sel__hadd/", "output/", true, "WW"); 
 
   printf("Start W+jets weights with %s, lumi=%.3f, indir=%s, outdir=%s, addWeight option %d\n",
 	 input.c_str(), luminosity, indir.c_str(), outdir.c_str(), int(addWeight));
@@ -142,14 +151,6 @@ int addWJetsWeights(string input="latino_ll_LP_test.root",
 
   string openMode = "read";
 
-  /* // not needed since we clone the input tree
-     if(addWeight)
-     openMode="update";
-     else{
-     openMode="read";
-     }
-  */
-
 
   // SF, FR, PR and trigger efficiencies histograms
   //----------------------------------------------------------------------------
@@ -159,43 +160,38 @@ int addWJetsWeights(string input="latino_ll_LP_test.root",
   TH2F*                         MuonPR;
   TH2F*                         ElecPR;
  
-  TString muonJetPt = "15", elecJetPt = "35";
+  TString muonJetPt = "20", elecJetPt = "35";
  
-  MuonPR = LoadHistogram("MuPR_2012",  "h2inverted", "MuonPR");
+  MuonPR = LoadHistogram("ZJets_MuPR_RunII_25ns_08Jan_2120pb", "h_Muon_signal_pt_eta_bin", "MuonPR");
 
-  ElecPR = LoadHistogram("ElePR_2012", "h2inverted", "ElecPR");
- 
+  ElecPR = LoadHistogram("EGPR_RunII_25ns_08Jan_2120pb", "h_Ele_signal_pt_eta_bin", "ElecPR");
+  
+  MuonFR = LoadHistogram(Form("MuFR_RunII_25ns_jet%s_08Jan", muonJetPt.Data()), "FR_pT_eta_EWKcorr", Form("MuonFR_Jet%s", muonJetPt.Data()));
 
-  MuonFR = LoadHistogram("MuFR_RunII_50ns", "h_Muon_signal_pt_eta_bin",  "MuonFR");
-  //  MuonFR = LoadHistogram(Form("MuFR_Moriond13_jet%s_EWKcorr", muonJetPt.Data()),
-  //	 "FR_pT_eta_EWKcorr", Form("MuonFR_Jet%s", muonJetPt.Data()));
-
-  //ElecFR = LoadHistogram(Form("EleFR_Moriond13_jet%s_EWKcorr", elecJetPt.Data()),
-  // 			 "fakeElH2", Form("ElecFR_Jet%s", elecJetPt.Data()));
-
-  ElecFR = LoadHistogram("EleFR_RunII_25ns", "h_Ele_signal_pt_eta_bin", "ElecFR");
+  ElecFR = LoadHistogram(Form("EGFR_RunII_25ns_jet%s_08Jan", elecJetPt.Data()), "FR_pT_eta_EWKcorr", Form("ElecFR_Jet%s", elecJetPt.Data()));
 
  
+
  //--- OPEN LOOSE-LOOSE FILE 
  //----------------------------------------------------------------------------
 
+
   TFile* file = new TFile(Form("%s%s", indir.c_str(),input.c_str()),openMode.c_str());
+
   TTree* tree = (TTree*)file->Get("latino");
+
   printf("input tree from %s%s: %d events\n", indir.c_str(),input.c_str(), (int)tree->GetEntries());
- 
-  Float_t weight, weightQCD, weightQCDUp, weightQCDDn , weightWJet, weightUp, weightDown, weightMuStatUp, weightMuStatDown, weightElStatUp, weightElStatDown; 
-  Float_t weightMuUp, weightMuDown, weightElUp, weightElDown,  weightQCDMuUp, weightQCDMuDn,  weightQCDElUp, weightQCDElDn; 
-
-
+  
  tree->SetBranchAddress("baseW  ", &baseW);
  tree->SetBranchAddress("jetRho", &jetRho);
  tree->SetBranchAddress("channel", &channel);
-
+ tree->SetBranchAddress("trigger", &trigger);
  tree->SetBranchAddress("std_vector_lepton_pt", &std_vector_lepton_pt);
  tree->SetBranchAddress("std_vector_lepton_eta", &std_vector_lepton_eta);
  tree->SetBranchAddress("std_vector_lepton_phi", &std_vector_lepton_phi);
- tree->SetBranchAddress("std_vector_lepton_id", &std_vector_lepton_id);
+ tree->SetBranchAddress("std_vector_lepton_flavour", &std_vector_lepton_flavour);
  tree->SetBranchAddress("std_vector_lepton_isTightMuon", &std_vector_lepton_isTightMuon);
+ tree->SetBranchAddress("std_vector_lepton_isMediumMuon", &std_vector_lepton_isMediumMuon);
  tree->SetBranchAddress("std_vector_lepton_eleIdMedium", &std_vector_lepton_eleIdMedium);
  tree->SetBranchAddress("std_vector_lepton_eleIdVeto", &std_vector_lepton_eleIdVeto);
  tree->SetBranchAddress("std_vector_lepton_chargedHadronIso", &std_vector_lepton_chargedHadronIso);
@@ -207,9 +203,12 @@ int addWJetsWeights(string input="latino_ll_LP_test.root",
  tree->SetBranchAddress("std_vector_lepton_BestTrackdxy", &std_vector_lepton_BestTrackdxy);
 
 
-
 //--- New branches to be added
 //----------------------------------------------------------------------------
+ 
+ Float_t weight, weightQCD, weightWJet, weightUp, weightDown; 
+
+
  tree->SetBranchStatus("*", 1);
  // in case already exist
  tree->SetBranchStatus("fakeW",           0);
@@ -279,11 +278,12 @@ int addWJetsWeights(string input="latino_ll_LP_test.root",
  int emPP(0),emPF(0),emFF(0);
  int eePP(0),eePF(0),eeFF(0);
 
- Long64_t nentries = tree->GetEntries();
+ Long64_t nentries = 500000;//tree->GetEntries();
 
  unsigned int countEntriesByHand(0);
  unsigned int countEntriesByHand2(0);
- nentries=1000000;
+
+
   for (Long64_t jentry=0; jentry<nentries;jentry++) {
     
     tree->GetEntry(jentry);
@@ -292,20 +292,12 @@ int addWJetsWeights(string input="latino_ll_LP_test.root",
     weightWJet = 1.0; 
     weightQCD = 1.0; 
 
-    //float sign = 1.; if (dataset<100) sign = -1.; // flip sign to subtract non-fake contamination from Vg/Vg*
+    float sign = 1.; 
+    //if ( input.Contains("Zg") ) sign = -1.; // flip sign to subtract non-fake contamination from Vg/Vg*
     
     if (jentry%10000==0) printf("Processing event %d \n", int(jentry));
 
-
-
-    // Help variables (only for deining loose+loose sample) 
-    //--------------------------------------------------------------------------
-  
-    bool passLooseIDISO1 = IsLooseLepton(0) && IsLooseIsolatedLepton(0); 
-    bool passLooseIDISO2 = IsLooseLepton(1) && IsLooseIsolatedLepton(1); 
-    
-    if (!passLooseIDISO1) continue;
-    if (!passLooseIDISO2) continue;
+    if ( trigger == 0) continue; 
 
 
     // Loop over leptons
@@ -313,42 +305,52 @@ int addWJetsWeights(string input="latino_ll_LP_test.root",
     AnalysisLeptons.clear();
      
     int vsize = std_vector_lepton_pt->size();
-   
+    
     for (int i=0; i<vsize; i++) {
+ 
+      //if (  MuonIsolation(i) > 0.15 ) cout << MuonIsolation(i) << endl; 
+
+      if ( !IsLooseLepton(i) ) continue; 
+      if ( !IsLooseIsolatedLepton(i) ) continue; 
+ 
       
      float pt  = std_vector_lepton_pt ->at(i);
      float eta = std_vector_lepton_eta->at(i);
      float phi = std_vector_lepton_phi->at(i);
-     float id  = std_vector_lepton_id ->at(i);
+     float id  = std_vector_lepton_flavour ->at(i);
 
      Lepton lep;
     
      lep.index  = i;
      lep.charge = id;
-     
-     if (fabs(id) == 11)
-       { lep.flavor = Electron; }
-     else if (fabs(id) == 13)
-       { lep.flavor = Muon; }
-     else lep.flavor = Unknown;
+     lep.pt = pt; 
+     lep.eta = eta;
 
+     if (fabs(id) == 11) { 
+       lep.flavour = Electron; 
+     } else if (fabs(id) == 13) { 
+       lep.flavour = Muon; 
+     }
+    
+     if (pt <=15 ) continue;
+     if (fabs(eta) >= 2.4 ) continue;  
 
-     if (IsTightLepton(i) && IsIsolatedLepton(i) )  { 
+     if ( IsTightLepton(i) &&  IsIsolatedLepton(i) ) { 
        lep.type = Tight;
      } else {
-       lep.type = noTight;
+       lep.type =  noTight;
      }
-     
 
-      //------------------------------------------------------------------------
-      //
-      // Electron
-      //
-      //------------------------------------------------------------------------
-      if (lep.flavor == Electron)
+           
+     //------------------------------------------------------------------------
+     //
+     // Electron
+     //
+     //------------------------------------------------------------------------
+      if (lep.flavour == Electron)
 	{
-	  lep.pr    = GetFactor(ElecPR,       pt, eta);
-	  lep.fr    = GetFactor(ElecFR,       pt, eta, 29.);
+	  lep.pr = GetFactor(ElecPR,       pt, eta);
+	  lep.fr = GetFactor(ElecFR,  pt, eta, 0.0);
  
 	  //cout << pt << ", " << eta << ", " << lep.fr << endl;
 	}
@@ -357,22 +359,21 @@ int addWJetsWeights(string input="latino_ll_LP_test.root",
       // Muon 
       //
       //------------------------------------------------------------------------
-      else if (lep.flavor == Muon)
+      else if (lep.flavour == Muon)
 	{
-	  lep.pr    = GetFactor(MuonPR,        pt, eta);
-	  lep.fr    = GetFactor(MuonFR,        pt, eta, 24.);
-	  
+	  lep.pr = GetFactor(MuonPR,        pt, eta);
+	  lep.fr = GetFactor(MuonFR,   pt, eta, 0.);
+
+	  //cout << pt << ", " << eta << ", " << lep.pr <<  ", " << lep.fr << endl;
+
 	}
-      else if (lep.flavor == Unknown ) { 
-
-	lep.pr = 0; lep.fr = 0; 
-      }
-
+  
       AnalysisLeptons.push_back(lep);
  
     } // end loop on leptons
+ 
+    if ( AnalysisLeptons.size() != 2) continue; 
 
-    
     // Compute weights in case of having two leptons 
     //--------------------------------------------------------------------------
 
@@ -386,34 +387,49 @@ int addWJetsWeights(string input="latino_ll_LP_test.root",
     double prompt1 = AnalysisLeptons[0].pr;
     double prompt2 = AnalysisLeptons[1].pr;
 
-   
+  
     //-- Compute Fake+Prompt background 
+
+    bool isTight1 = 0, isTight2 = 0; 
+    if ( AnalysisLeptons[0].type == Tight)  {
+      isTight1 = 1;
+    } else if (AnalysisLeptons[0].type == noTight)  {
+      isTight1 = 0;
+    }
+
+    if ( AnalysisLeptons[1].type == Tight) {
+      isTight2 = 1;
+    }  else if (AnalysisLeptons[1].type == noTight)  {
+      isTight2 = 0;
+    }
+
+
     double wSum(-1.);
-    if        (  AnalysisLeptons[0].type == Tight &&  AnalysisLeptons[1].type == Tight) {
+    if        ( isTight1 && isTight2 ) {
       wSum     = -(Eps1*Eta1+Eps2*Eta2);
-    } else if ( AnalysisLeptons[0].type == noTight &&  AnalysisLeptons[1].type == noTight) { 
+    } else if ( !isTight1 && !isTight2 ) { 
       wSum     = -2*Eps1*Eps2;
-    } else if ( AnalysisLeptons[0].type == Tight &&  AnalysisLeptons[1].type == noTight) {
+    } else if ( isTight1 &&  !isTight2 ) {
       wSum     = Eps2+Eps1*Eta1*Eps2;
-    } else if (AnalysisLeptons[0].type == noTight &&  AnalysisLeptons[1].type == Tight) {
+    } else if ( !isTight1 && isTight2 ) {
       wSum     = Eps1+Eps2*Eta2*Eps1;
     } else {
       cout << "ERROR: logical problem" << endl;
       return 1;
     }
  
-    double norm     = 1./(1-Eps1*Eta1)/(1-Eps2*Eta2);
-    weightWJet          = float(wSum*norm);
+    double normWJet    = 1./(1-Eps1*Eta1)/(1-Eps2*Eta2);
+    weightWJet          = float(wSum*normWJet);
  
     //-- Compute Fake+Fake background --> from Alicia
     double QCDSum(-1.);
-    if        ( AnalysisLeptons[0].type == Tight &&  AnalysisLeptons[1].type == Tight ) {
+    if        ( isTight1 && isTight2 ) {
       QCDSum     = (fake1*fake2*(1-prompt1)*(1-prompt2));
-    } else if (AnalysisLeptons[0].type == noTight &&  AnalysisLeptons[1].type == noTight) {
+    } else if ( !isTight1 && !isTight2 ) {
       QCDSum     = (prompt1*prompt2*fake1*fake2);
-    } else if ( AnalysisLeptons[0].type == Tight &&  AnalysisLeptons[1].type == noTight ) {
+    } else if ( isTight1 &&  !isTight2 ) {
       QCDSum     = -(prompt2*(1-prompt1)*fake2*fake1);
-    } else if (AnalysisLeptons[0].type == noTight &&  AnalysisLeptons[1].type == Tight) {
+    } else if ( !isTight1 && isTight2 ) {
       QCDSum     = -(prompt1*(1-prompt2)*fake1*fake2);
     }
     
@@ -422,57 +438,68 @@ int addWJetsWeights(string input="latino_ll_LP_test.root",
 
     weight = weightWJet + weightQCD;
 
+  
     //------ summing the weights only for those events passing the full selection
+    float pt1  = AnalysisLeptons[0].pt; float pt2  = AnalysisLeptons[1].pt;
+    float ch1  = AnalysisLeptons[0].charge;  float ch2  = AnalysisLeptons[1].charge;
+    int flav1 =  AnalysisLeptons[0].flavour;  int flav2 =  AnalysisLeptons[1].flavour;
 
-    bool commonSel =  std_vector_lepton_pt ->at(0) > 15 && std_vector_lepton_pt ->at(1) > 15;//(AnalysisLeptons[0].charge*AnalysisLeptons[1].charge < 0) && std_vector_lepton_pt ->at(0) > 10 && std_vector_lepton_pt ->at(1) > 10;
+    
+    if (flav1 == Muon     && flav2 == Muon )    ch = mm; 
+    if( flav1 == Electron && flav2 == Electron) ch = ee; 
+    if (flav1 == Muon     && flav2 == Electron) ch = me; 
+    if (flav1 == Electron && flav2 == Muon)     ch = em; 
+    
+    
+    bool commonSel =  ( trigger == 1 && pt1 > 10 && pt2 > 10 && ch1*ch2 < 0);
 
     if(commonSel) {
-      
+      //cout << weight << endl;
       countEntriesByHand2++;
 
-      if(channel == mm) {
+      if(ch == mm) {
 	sumOfWeightsMuMu += weightWJet; 
 	sumOfQCDWeightsMuMu += weightQCD; 
       }
 
-      if(channel == me) {
+      if(ch == me) {
 	sumOfWeightsMuEl += weightWJet;
 	sumOfQCDWeightsMuEl += weightQCD; 
       }
 
-      if(channel == em) {
+      if(ch == em) {
 	sumOfWeightsElMu += weightWJet; 
 	sumOfQCDWeightsElMu += weightQCD; 
       }      
 
-      if(channel == ee) {
+      if(ch == ee) {
 	sumOfWeightsElEl += weightWJet; 
 	sumOfQCDWeightsElEl += weightQCD; 
       }
       
       char* label;
-      if(AnalysisLeptons[0].type == Tight &&  AnalysisLeptons[1].type == Tight) label="PP";
-      if(AnalysisLeptons[0].type == noTight &&  AnalysisLeptons[1].type == noTight) label="FF";
-      if((AnalysisLeptons[0].type == Tight &&  AnalysisLeptons[1].type == noTight) || (AnalysisLeptons[0].type == noTight &&  AnalysisLeptons[1].type == Tight)) label="PF";
+      if( isTight1 && isTight2 ) label="PP";
+      if( !isTight1 && !isTight2) label="FF";
+      if(( isTight1 && !isTight2) || ( !isTight1 &&  isTight2)) label="PF";
 	
 
       if(label == "PP"){
-	if(channel == mm) mmPP++;
-	if(channel == me) mePP++;
-	if(channel == em) emPP++;
-	if(channel == ee) eePP++;
+	if(ch == mm) mmPP++;
+	if(ch == me) mePP++;
+	if(ch == em) emPP++;
+	if(ch == ee) eePP++;
       }
       if(label == "PF"){
-	if(channel == mm) mmPF++;
-	if(channel == me) mePF++;
-	if(channel == em) emPF++;
-	if(channel == ee) eePF++;
+	if(ch == mm) mmPF++;
+	if(ch == me) mePF++;
+	if(ch == em) emPF++;
+	if(ch == ee) eePF++;
       }
       if(label == "FF"){
-	if(channel == mm) mmFF++;
-	if(channel == me) meFF++;
-	if(channel == em) emFF++;
-	if(channel == ee) eeFF++;
+	if(ch == mm) mmFF++;
+	if(ch == me) meFF++;
+	if(ch == em) emFF++;
+	if(ch == ee) eeFF++;
       }
 
     } // end selection
@@ -481,8 +508,8 @@ int addWJetsWeights(string input="latino_ll_LP_test.root",
     baseW *= 1./luminosity;
     countEntriesByHand++;
 
-    if(addWeight) newtree->Fill(); 
-    //if(addWeight && trigger>0) newtree->Fill(); //in the momento we will have trigger.
+    //if(addWeight) newtree->Fill(); 
+    if(addWeight && trigger>0) newtree->Fill(); //in the momento we will have trigger.
 
   } // end loop on entries
 
@@ -550,7 +577,7 @@ TH2F* LoadHistogram(TString filename,
 		    TString hname,
 		    TString cname) {
 
-  TString path = "../auxiliaryFiles8TeV/";
+  TString path = "results/";
 
   TFile* inputfile = TFile::Open(path + filename + ".root");
 
@@ -576,23 +603,26 @@ bool IsTightLepton(int k)
   bool is_tight_lepton = false;
 
   // Muon tight ID
-  if (fabs(std_vector_lepton_id->at(k)) == 13)
+  if (fabs(std_vector_lepton_flavour->at(k)) == 13)
     {
       float dxyCut = 0;
 	
       if ( std_vector_lepton_pt->at(k) < 20 ) { 
-	dxyCut = 0.01;
+	dxyCut = 0.02;
       }	else {
 	dxyCut = 0.02;
       }
 
-      is_tight_lepton = ( std_vector_lepton_isTightMuon->at(k)              && 
-			  fabs(std_vector_lepton_BestTrackdz->at(k))  < 0.1       && 
-			  fabs(std_vector_lepton_BestTrackdxy->at(k)) < dxyCut );
-	}
+      is_tight_lepton = ( std_vector_lepton_isMediumMuon->at(k)              && 
+			  //fabs(std_vector_lepton_BestTrackdz->at(k))  < 0.1       && 
+			  //fabs(std_vector_lepton_BestTrackdxy->at(k)) < dxyCut );
+			  std_vector_lepton_BestTrackdz->at(k)  < 0.1       && 
+			  std_vector_lepton_BestTrackdxy->at(k) < dxyCut );
+
+    }
 
   // Electron cut based medium ID
-  else if (fabs(std_vector_lepton_id->at(k)) == 11)
+  else if (fabs(std_vector_lepton_flavour->at(k)) == 11)
     {
       is_tight_lepton = std_vector_lepton_eleIdMedium->at(k);
     }
@@ -607,7 +637,7 @@ bool IsTightLepton(int k)
 float MuonIsolation(int k)
 {
   float pt = std_vector_lepton_pt->at(k);
-  float id = std_vector_lepton_id->at(k);
+  float id = std_vector_lepton_flavour->at(k);
 
   float relative_isolation = -999;
 
@@ -622,6 +652,8 @@ float MuonIsolation(int k)
 
   relative_isolation /= pt;
 
+  
+
   return relative_isolation;
 }
 
@@ -632,7 +664,7 @@ float MuonIsolation(int k)
 float ElectronIsolation(int k)
 {
   float pt = std_vector_lepton_pt->at(k);
-  float id = std_vector_lepton_id->at(k);
+  float id = std_vector_lepton_flavour->at(k);
 
   float relative_isolation = -999;
 
@@ -656,12 +688,12 @@ float ElectronIsolation(int k)
 //------------------------------------------------------------------------------
 bool IsIsolatedLepton(int k)
 {
-  float id = std_vector_lepton_id->at(k);
+  float id = std_vector_lepton_flavour->at(k);
 
   bool is_isolated_lepton = false;
 
   if      (fabs(id) == 11) is_isolated_lepton = true;  //(ElectronIsolation(k) < 0.15);
-  else if (fabs(id) == 13) is_isolated_lepton = (MuonIsolation(k)     < 0.12);
+  else if (fabs(id) == 13) is_isolated_lepton = (MuonIsolation(k)     < 0.15);
   
   return is_isolated_lepton;
 }
@@ -674,21 +706,32 @@ bool IsIsolatedLepton(int k)
 //------------------------------------------------------------------------------
 bool IsLooseLepton(int k)
 {
+
   bool is_loose_lepton = false;
 
   // Muon tight ID
-  if (fabs(std_vector_lepton_id->at(k)) == 13)
+  if (fabs(std_vector_lepton_flavour->at(k)) == 13)
     {
-     
-      is_loose_lepton = ( std_vector_lepton_isTightMuon->at(k)              && 
+
+        float dxyCut = 0;
+      
+      if ( std_vector_lepton_pt->at(k) < 20 ) { 
+	dxyCut = 0.02;
+      }	else {
+	dxyCut = 0.02;
+      }
+ 
+      is_loose_lepton = ( std_vector_lepton_isMediumMuon->at(k)              && 
+			  //abs(std_vector_lepton_BestTrackdz->at(k))  < 0.1       && 
+			  //abs(std_vector_lepton_BestTrackdxy->at(k)) < dxyCut ); 
 			  std_vector_lepton_BestTrackdz->at(k)  < 0.1       && 
-			  std_vector_lepton_BestTrackdxy->at(k) < 0.2 ); 
+			  std_vector_lepton_BestTrackdxy->at(k) < dxyCut ) ;  
     }
 
   // Electron cut based medium ID
-  else if (fabs(std_vector_lepton_id->at(k)) == 11)
+  else if (fabs(std_vector_lepton_flavour->at(k)) == 11)
     {
-      is_loose_lepton = std_vector_lepton_eleIdVeto->at(k);
+       is_loose_lepton = std_vector_lepton_eleIdVeto->at(k);
     }
 
   return is_loose_lepton;
@@ -701,12 +744,12 @@ bool IsLooseLepton(int k)
 //------------------------------------------------------------------------------
 bool IsLooseIsolatedLepton(int k)
 {
-  float id = std_vector_lepton_id->at(k);
+  float id = std_vector_lepton_flavour->at(k);
 
   bool is_isolated_lepton = false;
 
   if      (fabs(id) == 11) is_isolated_lepton = true;  //(ElectronIsolation(k) < 0.15);
-  else if (fabs(id) == 13) is_isolated_lepton = (MuonIsolation(k)     < 0.5);
+  else if (fabs(id) == 13) is_isolated_lepton = (MuonIsolation(k)     < 0.4);
   
   return is_isolated_lepton;
 }
