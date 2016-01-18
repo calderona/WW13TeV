@@ -77,6 +77,7 @@ std::vector<Lepton> AnalysisGenLeptons;
 std::vector<Jet> AnalysisJets;
 
 Float_t          jetRho;
+Float_t          puW;
 Float_t          channel;
 Float_t          baseW;
 Float_t          pfType1Met;  
@@ -87,13 +88,16 @@ Float_t          dphilmet2;
 Float_t          nvtx;
 Float_t          triggerFakeRate;
 Float_t          trigger;
+Float_t          njet;
 
 vector<float>   *std_vector_lepton_flavour;
 vector<float>   *std_vector_lepton_pt;
 vector<float>   *std_vector_lepton_eta;
 vector<float>   *std_vector_lepton_phi;
 vector<float>   *std_vector_lepton_isTightMuon; 
+vector<float>   *std_vector_lepton_isMediumMuon; 
 vector<float>   *std_vector_lepton_eleIdMedium; 
+vector<float>   *std_vector_lepton_eleIdTight; 
 vector<float>   *std_vector_lepton_eleIdVeto;
 vector<float>   *std_vector_lepton_chargedHadronIso; 
 vector<float>   *std_vector_lepton_photonIso;
@@ -105,6 +109,17 @@ vector<float>   *std_vector_lepton_BestTrackdxy;
 vector<float>   *std_vector_lepton_muSIP3D;
 vector<float>   *std_vector_lepton_elSIP3D;
 
+vector<float>   *std_vector_electron_dEtaIn;
+vector<float>   *std_vector_electron_dPhiIn;
+vector<float>   *std_vector_electron_full5x5_sigmaIetaIeta;
+vector<float>   *std_vector_electron_hOverE;
+vector<float>   *std_vector_electron_ooEmooP;
+vector<float>   *std_vector_electron_expectedMissingInnerHits;
+vector<float>   *std_vector_electron_d0;
+vector<float>   *std_vector_electron_dz;
+vector<float>   *std_vector_electron_passConversionVeto;
+
+
 vector<float>   *std_vector_leptonGen_pt;
 vector<float>   *std_vector_leptonGen_eta;
 vector<float>   *std_vector_leptonGen_phi;
@@ -113,6 +128,7 @@ vector<float>   *std_vector_leptonGen_status;
 vector<float>   *std_vector_leptonGen_mpid;
 vector<float>   *std_vector_leptonGen_mstatus;
 vector<float>   *std_vector_trigger;
+vector<float>   *std_vector_trigger_prescale;
 
 vector<float>   *std_vector_jet_pt;
 vector<float>   *std_vector_jet_eta;
@@ -123,36 +139,49 @@ vector<float>   *std_vector_lepton_closejet_phi;
 vector<float>   *std_vector_lepton_closejet_PartonFlavour;
 vector<float>   *std_vector_lepton_closejet_drlj;
 
+Float_t  GEN_weight_SM = 1.0;
+Float_t  negativeWeight = 1.0;
 
+Float_t myBaseW = 1.0;
 
 //------------------------------------------------------------------------------
 // MAIN function
 //------------------------------------------------------------------------------
 
 
-void computeFR (TString theSample="WJets", bool doGen = false) {
+void computeFR (TString theSample="WJets", bool doGen = false, int flavour = 0, float inputJetEt = 0) {
 
   // ------ root settings ---------
  
   TH1::SetDefaultSumw2();
   
-  TString path = Form("/gpfs/csic_users/calderon/IFCA_2015/WW13TeV/addWJet/rootfiles/");
+  TString path = Form("/gpfs/csic_users/calderon/IFCA_2015/WW13TeV_V1/addWJet/rootfiles/");
 
   TFile* root_output;  
+  TString jetFlavour; 
 
+  if (flavour == 1 )   jetFlavour = "_D_"; 
+  if (flavour == 2 )   jetFlavour = "_U_"; 
+  if (flavour == 3 )   jetFlavour = "_S_"; 
+  if (flavour == 4 )   jetFlavour = "_C_"; 
+  if (flavour == 5 )   jetFlavour = "_B_"; 
+  if (flavour == 21)   jetFlavour = "_G_"; 
+  if (flavour == 0 )   jetFlavour = "_"; 
 
+  TString jet = Form("%i", (int)inputJetEt);
+  
   if (doGen) {
     root_output = new TFile(path + theSample + "_FR_FakeRate.root", "recreate");
   }  else {
-    root_output =  new TFile(path + theSample + "_FakeRate.root", "recreate");
+    root_output =  new TFile(path + theSample + jetFlavour + "jet"+ jet +"_FakeRate_2120pb.root", "recreate");
   }
 
   //-- Define histograms 
   //----------------------------------------------------------------------------
 
   // Define pt bins for FR matrix
-  int pTbin = 7;
-  Double_t pTbins[8] = { 15., 20., 25., 30., 35., 40., 45.0, 50.0};
+  int pTbin = 8;
+  Double_t pTbins[9] = { 10., 15., 20., 25., 30., 35.,40., 45., 50.};
 
   // Define eta bins for FR matrix
   int etabin = 5;
@@ -165,7 +194,10 @@ void computeFR (TString theSample="WJets", bool doGen = false) {
 
   // MUON histograms
 
-  TH1F  *h_triggerBits = new TH1F("h_triggerBits", "h_triggerBits", 13, 0, 13 ); 
+  TH1F  *h_triggerBits = new TH1F("h_triggerBits", "h_triggerBits", 80, 0, 80 ); 
+  TH1F * h_LooseMuons = new TH1F("h_LooseMuons", "h_LooseMuons", 10, 0.1, 1.1);
+  TH1F  *h_LooseMuons_Iso   = new TH1F("h_LooseMuons_Iso","h_LooseMuons_Iso", 10,0,1.0);
+  TH1F  *h_LooseMuons_All  = new TH1F("h_LooseMuons_All","h_LooseMuons_All", 3,0,2);  
 
   TH1F  *h_Muon_fake_pT_bin   = new TH1F("h_Muon_fake_pT_bin","h_Muon_fake_pT_bin", pTbin,pTbins);
   TH1F  *h_Muon_signal_pT_bin = new TH1F("h_Muon_signal_pT_bin","h_Muon_signal_pT_bin",pTbin,pTbins);
@@ -174,6 +206,9 @@ void computeFR (TString theSample="WJets", bool doGen = false) {
 
   TH2F  *h_Muon_fake_pt_eta_bin = new TH2F("h_Muon_fake_pt_eta_bin","h_Muon_fake_pt_eta_bin",pTbin,pTbins,etabin,etabins);
   TH2F  *h_Muon_signal_pt_eta_bin = new TH2F("h_Muon_signal_pt_eta_bin","h_Muon_signal_pt_eta_bin",pTbin,pTbins,etabin,etabins);
+
+  TH2F  *h_Muon_fake_ptIso_eta_bin = new TH2F("h_Muon_fake_ptIso_eta_bin","h_Muon_fake_ptIso_eta_bin",pTbin,pTbins,etabin,etabins);
+  TH2F  *h_Muon_signal_ptIso_eta_bin = new TH2F("h_Muon_signal_ptIso_eta_bin","h_Muon_signal_ptIso_eta_bin",pTbin,pTbins,etabin,etabins);
 
   TH1F  *h_Muon_fake_nPV = new TH1F("h_Muon_fake_nPV","h_Muon_fake_nPV",10,0,30);
   TH1F  *h_Muon_signal_nPV = new TH1F("h_Muon_signal_nPV","h_Muon_signal_nPV",10,0,30);
@@ -189,14 +224,17 @@ void computeFR (TString theSample="WJets", bool doGen = false) {
   TH1F  *h_Muon_fake_Mt_Met20   = new TH1F("h_Muon_fake_Mt_Met20","h_Muon_fake_Mt_Met20", 100,0,200);
   TH1F  *h_Muon_fake_Met   = new TH1F("h_Muon_fake_Met","h_Muon_fake_Met", 100,0,200);
   TH1F  *h_Muon_fake_CRjetEt   = new TH1F("h_Muon_fake_CRjetEt","h_Muon_fake_CRjetEt", 100,0,200);
-  TH1F  *h_Muon_fake_pt   = new TH1F("h_Muon_fake_pt","h_Muon_fake_pt", 15,0,200);
+  TH1F  *h_Muon_fake_pt   = new TH1F("h_Muon_fake_pt","h_Muon_fake_pt", 100,15,200);
   TH1F  *h_Muon_jetEt   = new TH1F("h_Muon_jetEt","h_Muon_jetEt", 100,0,200);
+  TH1F  *h_Muon_ptIso   = new TH1F("h_Muon_ptIso","h_Muon_ptIso", 100,0,200);
+  TH2F  *h_Muon_jetEt_ptIso   = new TH2F("h_Muon_jetEt_ptIso","h_Muon_jetEt_ptIso",100,15,100,100,15,100); 
+  TH2F  *h_Muon_jetEt_pt   = new TH2F("h_Muon_jetEt_pt","h_Muon_jetEt_pt",100,15,100,100,15,100); 
 
   TH1F  *h_Muon_signal_Mt   = new TH1F("h_Muon_signal_Mt","h_Muon_signal_Mt", 100,0,200);
   TH1F  *h_Muon_signal_Mt_Met20   = new TH1F("h_Muon_signal_Mt_Met20","h_Muon_signal_Mt_Met20", 100,0,200);
   TH1F  *h_Muon_signal_Met   = new TH1F("h_Muon_signal_Met","h_Muon_signal_Met", 100,0,200);
   TH1F  *h_Muon_signal_CRjetEt   = new TH1F("h_Muon_signal_CRjetEt","h_Muon_signal_CRjetEt", 100,0,200);
-  TH1F  *h_Muon_signal_pt   = new TH1F("h_Muon_signal_pt","h_Muon_signal_pt", 15,0,200);
+  TH1F  *h_Muon_signal_pt   = new TH1F("h_Muon_signal_pt","h_Muon_signal_pt", 100,15,200);
   
   TH1F  *h_Muon_fake_dxy_pt = new TH1F("h_Muon_fake_dxy_pt","h_Muon_fake_dxy_pt",50, 0, 0.3);
   TH1F  *h_Muon_signal_dxy_pt = new TH1F("h_Muon_signal_dxy_pt","h_Muon_fake_dxy_pt",50, 0, 0.3);
@@ -207,17 +245,21 @@ void computeFR (TString theSample="WJets", bool doGen = false) {
   TH1F  *h_Muon_fake_dxy_pt_bin = new TH1F("h_Muon_fake_dxy_pt_bin","h_Muon_fake_dxy_pt_bin",dxypTbin,dxypTbins);
   TH1F  *h_Muon_signal_dxy_pt_bin = new TH1F("h_Muon_signal_dxy_pt_bin","h_Muon_fake_dxy_pt_bin",dxypTbin,dxypTbins);
 
-  TH1F  *h_Muon_fake_jetEt = new TH1F("h_Muon_fake_jetEt","h_Muon_fake_jetEt",10,10,150);
-  TH1F  *h_Muon_signal_jetEt = new TH1F("h_Muon_signal_jetEt","h_Muon_signal_jetEt",10,10,150);
+  TH1F  *h_Muon_fake_jetEt = new TH1F("h_Muon_fake_jetEt","h_Muon_fake_jetEt",20,10,150);
+  TH1F  *h_Muon_signal_jetEt = new TH1F("h_Muon_signal_jetEt","h_Muon_signal_jetEt",20,10,150);
 
-  TH1F  *h_Muon_fake_sip3d = new TH1F("h_Muon_fake_sip3d","h_Muon_fake_sip3d",50, 0, 40);
-  TH1F  *h_Muon_signal_sip3d = new TH1F("h_Muon_signal_sip3d","h_Muon_fake_sip3d",50, 0, 40);
+  TH1F  *h_Muon_fake_sip3d = new TH1F("h_Muon_fake_sip3d","h_Muon_fake_sip3d",10, 0, 40);
+  TH1F  *h_Muon_signal_sip3d = new TH1F("h_Muon_signal_sip3d","h_Muon_fake_sip3d",10, 0, 40);
 
   TH1F  *h_Muon_fake_ptIso = new TH1F("h_Muon_fake_ptIso","h_Muon_fake_ptIso",pTbin,pTbins);
   TH1F  *h_Muon_signal_ptIso = new TH1F("h_Muon_signal_ptIso","h_Muon_fake_ptIso",pTbin,pTbins);
 
+  TH1F  *h_Muon_fake_jetEta = new TH1F("h_Muon_fake_jetEta","h_Muon_fake_jetEta",50,-5,5);
+  TH1F  *h_Muon_signal_jetEta = new TH1F("h_Muon_signal_jetEta","h_Muon_signal_jetEta",50,-5,5);
+
 
   // ELECTRON histograms
+
   TH1F  *h_Ele_fake_pT_bin   = new TH1F("h_Ele_fake_pT_bin","h_Ele_fake_pT_bin", pTbin,pTbins);
   TH1F  *h_Ele_signal_pT_bin = new TH1F("h_Ele_signal_pT_bin","h_Ele_signal_pT_bin",pTbin,pTbins);
   TH1F  *h_Ele_fake_eta_bin = new TH1F("h_Ele_fake_eta_bin","h_Ele_fake_eta_bin",etabin,etabins);
@@ -225,6 +267,9 @@ void computeFR (TString theSample="WJets", bool doGen = false) {
 
   TH2F  *h_Ele_fake_pt_eta_bin = new TH2F("h_Ele_fake_pt_eta_bin","h_Ele_fake_pt_eta_bin",pTbin,pTbins,etabin,etabins);
   TH2F  *h_Ele_signal_pt_eta_bin = new TH2F("h_Ele_signal_pt_eta_bin","h_Ele_signal_pt_eta_bin",pTbin,pTbins,etabin,etabins);
+
+  TH2F  *h_Ele_fake_ptIso_eta_bin = new TH2F("h_Ele_fake_ptIso_eta_bin","h_Ele_fake_ptIso_eta_bin",pTbin,pTbins,etabin,etabins);
+  TH2F  *h_Ele_signal_ptIso_eta_bin = new TH2F("h_Ele_signal_ptIso_eta_bin","h_Ele_signal_ptIso_eta_bin",pTbin,pTbins,etabin,etabins);
 
   TH1F  *h_Ele_fake_nPV = new TH1F("h_Ele_fake_nPV","h_Ele_fake_nPV",10,0,30);
   TH1F  *h_Ele_signal_nPV = new TH1F("h_Ele_signal_nPV","h_Ele_signal_nPV",10,0,30);
@@ -242,6 +287,7 @@ void computeFR (TString theSample="WJets", bool doGen = false) {
   TH1F  *h_Ele_jetEt   = new TH1F("h_Ele_jetEt","h_Ele_jetEt", 100,0,200);
   TH1F  *h_Ele_fake_Mt_Met20   = new TH1F("h_Ele_fake_Mt_Met20","h_Ele_fake_Mt_Met20", 100,0,200);
   TH1F  *h_Ele_pt   = new TH1F("h_Ele_pt","h_Ele_pt", 100,15,200);
+  TH1F  *h_Ele_ptIso   = new TH1F("h_Ele_ptIso","h_Ele_ptIso", 100,0,200);
 
   TH1F  *h_Ele_signal_Mt   = new TH1F("h_Ele_signal_Mt","h_Ele_signal_Mt", 100,0,200);
   TH1F  *h_Ele_signal_Met   = new TH1F("h_Ele_signal_Met","h_Ele_signal_Met", 100,0,200);
@@ -249,11 +295,14 @@ void computeFR (TString theSample="WJets", bool doGen = false) {
   TH1F  *h_Ele_signal_pt   = new TH1F("h_Ele_signal_pt","h_Ele_signal_pt", 100,15,200);
   TH1F  *h_Ele_signal_Mt_Met20   = new TH1F("h_Ele_signal_Mt_Met20","h_Ele_signal_Mt_Met20", 100,0,200);
   
-  TH1F  *h_Ele_fake_jetEt = new TH1F("h_Ele_fake_jetEt","h_Ele_fake_jetEt",10,10,150);
-  TH1F  *h_Ele_signal_jetEt = new TH1F("h_Ele_signal_jetEt","h_Ele_signal_jetEt",10,10,150);
+  TH1F  *h_Ele_fake_jetEt = new TH1F("h_Ele_fake_jetEt","h_Ele_fake_jetEt",20,10,150);
+  TH1F  *h_Ele_signal_jetEt = new TH1F("h_Ele_signal_jetEt","h_Ele_signal_jetEt",20,10,150);
 
-  TH1F  *h_Ele_fake_sip3d = new TH1F("h_Ele_fake_sip3d","h_Ele_fake_sip3d",50, 0, 40);
-  TH1F  *h_Ele_signal_sip3d = new TH1F("h_Ele_signal_sip3d","h_Ele_fake_sip3d",50, 0, 40);
+  TH1F  *h_Ele_fake_jetEta = new TH1F("h_Ele_fake_jetEta","h_Ele_fake_jetEta",50,-5,5);
+  TH1F  *h_Ele_signal_jetEta = new TH1F("h_Ele_signal_jetEta","h_Ele_signal_jetEta",50,-5,5);
+
+  TH1F  *h_Ele_fake_sip3d = new TH1F("h_Ele_fake_sip3d","h_Ele_fake_sip3d",10, 0, 40);
+  TH1F  *h_Ele_signal_sip3d = new TH1F("h_Ele_signal_sip3d","h_Ele_fake_sip3d",10, 0, 40);
 
   TH1F  *h_Ele_fake_ptIso = new TH1F("h_Ele_fake_ptIso","h_Ele_fake_ptIso",pTbin,pTbins);
   TH1F  *h_Ele_signal_ptIso = new TH1F("h_Ele_signal_ptIso","h_Ele_fake_ptIso",pTbin,pTbins);
@@ -263,47 +312,125 @@ void computeFR (TString theSample="WJets", bool doGen = false) {
   //--- OPEN LOOSE-LOOSE FILE 
   //----------------------------------------------------------------------------
   
-  TString filesPath1, filesPath2, filesPath3;
-  filesPath1 = "/gpfs/csic_projects/cms/piedra/latino/RunII/MC_Spring15/50ns/";
-  filesPath2 = "/gpfs/csic_projects/cms/piedra/latino/RunII/Data13TeVRun2015B/dataRun2015B/";
-  filesPath3 = "/gpfs/csic_projects/cms/piedra/latino/RunII/MC_Spring15/25ns/";
+  TString filesPath1, filesPath2, filesPath3, filesPath4;
+  filesPath1 = "/gpfs/csic_projects/tier3data/LatinosSkims/RunII/MC_Spring15/21Oct/25ns/";
+  filesPath2 = "/gpfs/csic_projects/tier3data/LatinosSkims/RunII/Data13TeV/21OctBis/";
+  //filesPath2 = "/gpfs/csic_projects/tier3data/LatinosSkims/RunII/Data13TeV/21Oct/25ns/";
+  filesPath3 = "/gpfs/csic_projects/tier3data/LatinosSkims/RunII/MC_Spring15/17Sep/25ns/";
+  filesPath4 = "/gpfs/csic_projects/tier3data/LatinosSkims/RunII/MC_Spring15/05Aug/25ns/";
 
   TChain* tree = new TChain("latino", "latino");
 
   if (theSample == "WJets") {
     tree->Add(filesPath1 + "latino_WJetsToLNu.root");
+    myBaseW = 61526.7/24184766;
+    negativeWeight = 0.683938;
   }
-  else if (theSample == "QCD") {
-    tree->Add(filesPath1 + "latino_QCD15to20Mu.root");
+  else if (theSample == "QCD2") {
+    tree->Add( filesPath4 + "latino_QCD_Pt-20toInf_MuEnrichedPt15.root");
   }
-  else if (theSample == "QCDEM") {
-    tree->Add(filesPath1 + "latino_QCD15to20EM.root");
-    tree->Add(filesPath1 + "latino_QCD20to30EM.root");
-    tree->Add(filesPath1 + "latino_QCD30to50EM.root");  
-    tree->Add(filesPath1 + "latino_QCD50to80EM.root");
-    //tree->Add(filesPath1 + "latino_QCD30toInfDoubleEM.root");
+  else if (theSample == "QCD1") {
+    tree->Add(filesPath3 + "latino_QCD_Pt-15to20_MuEnrichedPt5.root");
+    myBaseW = 1273190000/2362016;
   }
-  else if (theSample == "ZJets") {
-    //tree->Add(filesPath1 + "latino_DYJetsToLL1050.root");
-    //tree->Add(filesPath1 + "latino_DYJetsToLL.root");
-    tree->Add(filesPath1 + "latino_DYJetsToLL.root");
+  else if (theSample == "QCDEM_0") {
+    tree->Add(filesPath3 + "latino_QCD_Pt-15to20_EMEnriched.root");
+  }
+  else if (theSample == "QCDEM_1") {
+    tree->Add(filesPath3 + "latino_QCD_Pt-20to30_EMEnriched.root");
+  }
+  else if (theSample == "QCDEM_2") {
+    tree->Add(filesPath3 + "latino_QCD_Pt-30to50_EMEnriched.root");  
+  }
+  else if (theSample == "QCDEM_3") {
+    tree->Add(filesPath1 + "latino_QCD_Pt-50to80_EMEnriched.root");
+  }
+  else if (theSample == "ZJets_high") {
+    tree->Add(filesPath3 + "latino_DYJetsToLL_M-50.root");
+    myBaseW = 6025.2/28579957;
+    negativeWeight = 0.66998;
+  }
+  else if (theSample == "ZJets_low") {
+   tree->Add(filesPath3 + "latino_DYJetsToLL_M-10to50.root");
+   myBaseW = 18610/30021559;
+   negativeWeight = 0.727601;
   }
   else if (theSample == "Top") {
-    tree->Add(filesPath1 + "latino_TTJets.root");
+    tree->Add(filesPath3 + "latino_TT.root");
+    negativeWeight =  0.331658;
   }
   else if (theSample == "SingleTop") {
-    tree->Add(filesPath1 + "latino_ST_t-channel_top.root");
-    tree->Add(filesPath1 + "latino_topTchannelAntitop.root");
+    tree->Add(filesPath1 + "latino_ST_t-channel.root");
+    tree->Add(filesPath1 + "latino_ST_tW_antitop.root");
+    tree->Add(filesPath1 + "latino_ST_tW_top.root");
   }
-  else if (theSample == "dataEG") {
-    tree->Add(filesPath2 + "latino_DoubleEG.root");
+  else if (theSample == "dataDEG") {
+    tree->Add(filesPath2 + "latino_Run2915D_PromptReco_DoubleEG_0716pb_0000__part0.root");
+    tree->Add(filesPath2 + "latino_Run2915D_PromptReco_DoubleEG_0716pb_0000__part1.root");
+    tree->Add(filesPath2 + "latino_Run2915D_PromptReco_DoubleEG_0716pb_0000__part2.root");
+    tree->Add(filesPath2 + "latino_Run2915D_PromptReco_DoubleEG_0716pb_0000__part3.root");
+    tree->Add(filesPath2 + "latino_Run2915D_PromptReco_DoubleEG_0716pb_0000__part4.root");
+    tree->Add(filesPath2 + "latino_Run2915D_PromptReco_DoubleEG_0716pb_0001__part0.root");
+    tree->Add(filesPath2 + "latino_Run2915D_PromptReco_DoubleEG_0716pb_0001__part1.root");
+    tree->Add(filesPath2 + "latino_Run2915D_PromptReco_DoubleEG_0716pb_0001__part2.root");
+    tree->Add(filesPath2 + "latino_Run2915D_PromptReco_DoubleEG_0716pb_0001__part3.root");
+    tree->Add(filesPath2 + "latino_Run2915D_PromptReco_DoubleEG_0716pb_0001__part4.root");
+    tree->Add(filesPath2 + "latino_Run2915D_PromptReco_DoubleEG_0716pb_0002__part0.root");
+    tree->Add(filesPath2 + "latino_Run2915D_PromptReco_DoubleEG_0716pb_0002__part1.root");
+    tree->Add(filesPath2 + "latino_Run2915D_PromptReco_DoubleEG_0716pb_0002__part2.root");
+    tree->Add(filesPath2 + "latino_Run2915D_PromptReco_DoubleEG_0716pb_0002__part3.root");
+    tree->Add(filesPath2 + "latino_Run2915D_PromptReco_DoubleEG_0716pb_0002__part4.root");
+    tree->Add(filesPath2 + "latino_Run2915D_PromptReco_DoubleEG_0716pb_0003__part0.root");
+    tree->Add(filesPath2 + "latino_Run2915D_PromptReco_DoubleEG_0716pb_0003__part1.root");
+    tree->Add(filesPath2 + "latino_Run2915D_PromptReco_DoubleEG_0716pb_0003__part2.root");
+    tree->Add(filesPath2 + "latino_Run2915D_PromptReco_DoubleEG_0851pb_0000__part0.root");
+    tree->Add(filesPath2 + "latino_Run2915D_PromptReco_DoubleEG_0851pb_0000__part1.root");
+    tree->Add(filesPath2 + "latino_Run2915D_PromptReco_DoubleEG_0851pb_0000__part2.root");
+    tree->Add(filesPath2 + "latino_Run2015D_05Oct2015_DoubleEG_0000__part0.root");
+    tree->Add(filesPath2 + "latino_Run2015D_05Oct2015_DoubleEG_0000__part1.root");
+    tree->Add(filesPath2 + "latino_Run2015D_05Oct2015_DoubleEG_0000__part2.root");
+    tree->Add(filesPath2 + "latino_Run2015D_05Oct2015_DoubleEG_0000__part3.root");
+    tree->Add(filesPath2 + "latino_Run2015D_05Oct2015_DoubleEG_0000__part4.root");
+    tree->Add(filesPath2 + "latino_Run2015D_05Oct2015_DoubleEG_0001__part0.root");
+
+    //tree->Add("/gpfs/csic_projects/cms/calderon/latino_stepB_Data.root");
+    /*    tree->Add(filesPath2 + "latino_Run2015D_PromptReco_DoubleEG_0.root");
+    tree->Add(filesPath2 + "latino_Run2015D_PromptReco_DoubleEG_1.root");
+    tree->Add(filesPath2 + "latino_Run2015D_PromptReco_DoubleEG_2.root");
+    tree->Add(filesPath2 + "latino_Run2015D_PromptReco_DoubleEG_3.root");
+    tree->Add(filesPath2 + "latino_Run2015D_05Oct2015_DoubleEG_0.root");
+    tree->Add(filesPath2 + "latino_Run2015D_05Oct2015_DoubleEG_0.root");*/
   }
+  else if (theSample == "dataDMu") {
+  /*tree->Add(filesPath2 + "latino_Run2015D_PromptReco_DoubleMuon_0.root");
+    tree->Add(filesPath2 + "latino_Run2015D_PromptReco_DoubleMuon_1.root");
+    tree->Add(filesPath2 + "latino_Run2015D_PromptReco_DoubleMuon_2.root");
+    tree->Add(filesPath2 + "latino_Run2015D_PromptReco_DoubleMuon_3.root");
+    tree->Add(filesPath2 + "latino_Run2015D_05Oct2015_DoubleMuon_0.root");
+    tree->Add(filesPath2 + "latino_Run2015D_05Oct2015_DoubleMuon_1.root");*/
+    tree->Add(filesPath2 + "latino_Run2915D_PromptReco_DoubleMuon_0716pb_0000__part0.root");
+    tree->Add(filesPath2 + "latino_Run2915D_PromptReco_DoubleMuon_0716pb_0001__part0.root");  
+    tree->Add(filesPath2 + "latino_Run2915D_PromptReco_DoubleMuon_0716pb_0000__part1.root");
+    tree->Add(filesPath2 + "latino_Run2915D_PromptReco_DoubleMuon_0716pb_0000__part2.root");
+    tree->Add(filesPath2 + "latino_Run2915D_PromptReco_DoubleMuon_0716pb_0000__part3.root");
+    tree->Add(filesPath2 + "latino_Run2915D_PromptReco_DoubleMuon_0716pb_0000__part4.root");
+    tree->Add(filesPath2 + "latino_Run2915D_PromptReco_DoubleMuon_0851pb_0000__part0.root");
+    tree->Add(filesPath2 + "latino_Run2915D_PromptReco_DoubleMuon_0851pb_0000__part1.root");  
+    tree->Add(filesPath2 + "latino_Run2915D_PromptReco_DoubleMuon_0851pb_0000__part2.root");
+    tree->Add(filesPath2 + "latino_Run2015D_05Oct2015_DoubleMuon_0000__part0.root");
+    tree->Add(filesPath2 + "latino_Run2015D_05Oct2015_DoubleMuon_0000__part1.root");
+    tree->Add(filesPath2 + "latino_Run2015D_05Oct2015_DoubleMuon_0000__part2.root");
+    tree->Add(filesPath2 + "latino_Run2015D_05Oct2015_DoubleMuon_0000__part3.root");
+    tree->Add(filesPath2 + "latino_Run2015D_05Oct2015_DoubleMuon_0000__part4.root");
+    tree->Add(filesPath2 + "latino_Run2015D_05Oct2015_DoubleMuon_0001__part0.root");
+}
   else {
     return;
   }
 
 
   tree->SetBranchAddress("baseW", &baseW);
+  tree->SetBranchAddress("puW", &puW);
   tree->SetBranchAddress("jetRho", &jetRho);
   tree->SetBranchAddress("channel", &channel);
   tree->SetBranchAddress("pfType1Met", &pfType1Met);
@@ -313,13 +440,16 @@ void computeFR (TString theSample="WJets", bool doGen = false) {
   tree->SetBranchAddress("dphilmet2", &dphilmet2);
   tree->SetBranchAddress("nvtx",&nvtx);
   tree->SetBranchAddress("triggerFakeRate", &triggerFakeRate);
+  tree->SetBranchAddress("njet",&njet);
 
   tree->SetBranchAddress("std_vector_lepton_pt", &std_vector_lepton_pt);
   tree->SetBranchAddress("std_vector_lepton_eta", &std_vector_lepton_eta);
   tree->SetBranchAddress("std_vector_lepton_phi", &std_vector_lepton_phi);
   tree->SetBranchAddress("std_vector_lepton_flavour", &std_vector_lepton_flavour);
   tree->SetBranchAddress("std_vector_lepton_isTightMuon", &std_vector_lepton_isTightMuon);
+  tree->SetBranchAddress("std_vector_lepton_isMediumMuon", &std_vector_lepton_isMediumMuon); 
   tree->SetBranchAddress("std_vector_lepton_eleIdMedium", &std_vector_lepton_eleIdMedium);
+  tree->SetBranchAddress("std_vector_lepton_eleIdTight", &std_vector_lepton_eleIdTight);
   tree->SetBranchAddress("std_vector_lepton_eleIdVeto", &std_vector_lepton_eleIdVeto);
   tree->SetBranchAddress("std_vector_lepton_chargedHadronIso", &std_vector_lepton_chargedHadronIso);
   tree->SetBranchAddress("std_vector_lepton_photonIso", &std_vector_lepton_photonIso);
@@ -331,6 +461,17 @@ void computeFR (TString theSample="WJets", bool doGen = false) {
   tree->SetBranchAddress("std_vector_lepton_muSIP3D", &std_vector_lepton_muSIP3D);
   tree->SetBranchAddress("std_vector_lepton_elSIP3D", &std_vector_lepton_elSIP3D);
 
+  
+  tree->SetBranchAddress("std_vector_electron_dEtaIn", &std_vector_electron_dEtaIn);
+  tree->SetBranchAddress("std_vector_electron_dPhiIn", &std_vector_electron_dPhiIn);
+  tree->SetBranchAddress("std_vector_electron_full5x5_sigmaIetaIeta", &std_vector_electron_full5x5_sigmaIetaIeta);
+  tree->SetBranchAddress("std_vector_electron_hOverE",&std_vector_electron_hOverE);
+  tree->SetBranchAddress("std_vector_electron_ooEmooP",&std_vector_electron_ooEmooP);
+  tree->SetBranchAddress("std_vector_electron_expectedMissingInnerHits", &std_vector_electron_expectedMissingInnerHits);
+  tree->SetBranchAddress("std_vector_electron_d0",&std_vector_electron_d0);
+  tree->SetBranchAddress("std_vector_electron_dz", &std_vector_electron_dz);
+  tree->SetBranchAddress("std_vector_electron_passConversionVeto", &std_vector_electron_passConversionVeto);
+
 
   tree->SetBranchAddress("std_vector_leptonGen_pt", &std_vector_leptonGen_pt);
   tree->SetBranchAddress("std_vector_leptonGen_eta", &std_vector_leptonGen_eta);
@@ -340,6 +481,7 @@ void computeFR (TString theSample="WJets", bool doGen = false) {
   tree->SetBranchAddress("std_vector_leptonGen_mpid", &std_vector_leptonGen_mpid);
   tree->SetBranchAddress("std_vector_leptonGen_mstatus", &std_vector_leptonGen_mstatus);
   tree->SetBranchAddress("std_vector_trigger", &std_vector_trigger);
+  tree->SetBranchAddress("std_vector_trigger_prescale", &std_vector_trigger_prescale);
 
   tree->SetBranchAddress("std_vector_jet_pt", &std_vector_jet_pt);
   tree->SetBranchAddress("std_vector_jet_eta", &std_vector_jet_eta);
@@ -349,6 +491,8 @@ void computeFR (TString theSample="WJets", bool doGen = false) {
   tree->SetBranchAddress("std_vector_lepton_closejet_phi", &std_vector_lepton_closejet_phi);
   tree->SetBranchAddress("std_vector_lepton_closejet_PartonFlavour", &std_vector_lepton_closejet_PartonFlavour);
   tree->SetBranchAddress("std_vector_lepton_closejet_drlj", &std_vector_lepton_closejet_drlj);
+
+  if ( tree->FindBranch("GEN_weight_SM") ) tree->SetBranchAddress("GEN_weight_SM", &GEN_weight_SM);
 
 
   //----------------------------------------------------------------------------
@@ -364,26 +508,40 @@ void computeFR (TString theSample="WJets", bool doGen = false) {
   
     if (jentry%10000==0) printf("Processing event %d \n", int(jentry));
 
-    Float_t luminosity = 10.0; // 2fb-1
+    //Float_t luminosity = 1269; // pb-1
+    //Float_t luminosity = 1567; // pb-1
+    Float_t luminosity = 2120.016; //pb-1
 
-    Double_t totalW  = 1;//baseW * luminosity;
+    if ( theSample == "QCD1") {
+      //baseW = 559921.3;
+    }
+    if ( theSample == "QCD2" ) {
+      baseW = 161679.9;
+    }
+    if ( theSample == "QCDEM_0") {
+      baseW = 599960.88236;
+    }
+    if ( theSample == "QCDEM_1") {
+      baseW = 60767.86121;
+    }
+    if ( theSample == "QCDEM_2") {
+      baseW = 28961.53312;
+    }
+    if ( theSample == "QCDEM_3") {
+      baseW = 3788.10779;
+    }
+
+    Double_t totalW = 1; 
+
+    if ( !theSample.Contains("data") ) {
+      Double_t   genWeight   = 1.0;
+      genWeight = GEN_weight_SM/abs(GEN_weight_SM)/negativeWeight;
+      totalW  = genWeight * puW * myBaseW * luminosity;
+    }
 
     nE++;
 
-    // Help variables (only for deining loose+loose sample) 
-    //--------------------------------------------------------------------------
-
-    bool passLooseIDISO1 = IsLooseLepton(0) && IsLooseIsolatedLepton(0); 
-    bool passLooseIDISO2 = IsLooseLepton(1) && IsLooseIsolatedLepton(1); 
     
-    //if (!passLooseIDISO1) continue;
-    //if (!passLooseIDISO2) continue;
-    
-  
- 
-    bool passIDISO1 = IsTightLepton(0) && IsIsolatedLepton(0); 
-    bool passIDISO2 = IsTightLepton(1) && IsIsolatedLepton(1);
-
     
  
     // Loop over leptons
@@ -442,6 +600,9 @@ void computeFR (TString theSample="WJets", bool doGen = false) {
      float phi = std_vector_lepton_phi->at(i);
      float id  = std_vector_lepton_flavour ->at(i);
 
+     if ( !IsLooseLepton(i)) continue;  
+     if ( !IsLooseIsolatedLepton(i) ) continue;   
+
      Lepton lep;
     
      lep.index  = i;
@@ -458,8 +619,7 @@ void computeFR (TString theSample="WJets", bool doGen = false) {
        lep.type = noTight;
      }
   
-     if ( !IsLooseLepton(i)) continue;  
-     if ( !IsLooseIsolatedLepton(i) ) continue;   
+  
      lep.fromW = false;
      lep.iGen = false; 
 
@@ -467,13 +627,7 @@ void computeFR (TString theSample="WJets", bool doGen = false) {
      tlv.SetPtEtaPhiM(pt, eta, phi, 0);                                                                         
      lep.v = tlv; 
      
-     if ( doGen )  { 
-       //lep.fromW = comesFromW (i); 
-       //lep.iGen = isGen(i);
-       //float dR = tlv.DeltaR(AnalysisGenLeptons[0].v);     
-       //if ( dR < 0.3 ) lep.fromW = true; 
-     }
-  
+    
      AnalysisLeptons.push_back(lep);
 
     } // end loop on leptons 
@@ -491,13 +645,24 @@ void computeFR (TString theSample="WJets", bool doGen = false) {
 	  float eta = fabs(std_vector_lepton_eta->at(1));
 	  float dxy = fabs(std_vector_lepton_BestTrackdxy->at(1));
 	  float jetEt = std_vector_lepton_closejet_pt->at(1);
+	  float jetEta = std_vector_lepton_closejet_eta->at(1);
 	  float muSIP3D = std_vector_lepton_muSIP3D->at(1);
 	  float elSIP3D = std_vector_lepton_elSIP3D->at(1);
 	  float ptIso = pt*(1+MuonIsolation(1));
+	  float elptIso = pt*(1+(ElectronIsolation(1)));
 
-	  if (  AnalysisLeptons[0].type == Tight ) {
+	  if ( std_vector_lepton_pt->at(0)  < 15  ) continue;// || std_vector_lepton_pt->at(0)  > 40 ) continue; 
+	  if ( std_vector_lepton_pt->at(1)  < 15  ) continue;//|| std_vector_lepton_pt->at(1)  > 40 ) continue;
+  
+	  if ( std_vector_lepton_closejet_drlj->at(1) > 0.3 ) continue;
+
+	  double mt = giveMT(AnalysisLeptons[1].index, pfType1Met, pfType1Metphi); 
+
+	  //if ( mt < 20 && pfType1Met < 20 ) { 
+
+	    if (  AnalysisLeptons[0].type == Tight ) {
 	    
-	    if ( AnalysisLeptons[1].flavor == Muon ) { 
+	    if ( AnalysisLeptons[1].flavor == Muon && AnalysisLeptons[1].iGen &&  !AnalysisLeptons[1].fromW) { 
 	    
 	      h_Muon_fake_pT_bin->Fill(pt, totalW);
 	      h_Muon_fake_dxy_pt->Fill((dxy/pt)*100 , totalW);
@@ -509,8 +674,12 @@ void computeFR (TString theSample="WJets", bool doGen = false) {
 	      h_Muon_fake_nPV->Fill(nvtx, totalW); 
 	      h_Muon_fake_sip3d->Fill(muSIP3D, totalW);
 	      h_Muon_fake_ptIso->Fill(ptIso, totalW);
+	      h_Muon_ptIso ->Fill(ptIso, totalW);
+	      h_Muon_fake_pt->Fill(pt, totalW);
+	      h_Muon_fake_iso->Fill(MuonIsolation(1), totalW); 
+	      h_Muon_jetEt_pt->Fill(jetEt, pt, totalW); 
 
-	      if ( AnalysisLeptons[1].type == Tight)  {
+ 	      if ( AnalysisLeptons[1].type == Tight)  {
 	      
 		h_Muon_signal_eta_bin->Fill(eta, totalW);
 		h_Muon_signal_pT_bin->Fill(pt, totalW);
@@ -519,10 +688,13 @@ void computeFR (TString theSample="WJets", bool doGen = false) {
 		h_Muon_signal_nPV->Fill(nvtx, totalW); 
 		h_Muon_signal_sip3d->Fill(muSIP3D, totalW);
 		h_Muon_signal_ptIso->Fill(ptIso, totalW);
+		h_Muon_signal_pt->Fill(pt, totalW);
+		h_Muon_signal_iso->Fill(MuonIsolation(1), totalW); 
+
 	      }
 	    }
 
-	    if ( AnalysisLeptons[1].flavor == Electron ) { 
+	    if ( AnalysisLeptons[1].flavor == Electron  && !AnalysisLeptons[1].fromW ) { 
 	    
 	      h_Ele_fake_pT_bin->Fill(pt, totalW);	  
 	      h_Ele_jetEt->Fill(jetEt, totalW);
@@ -530,7 +702,10 @@ void computeFR (TString theSample="WJets", bool doGen = false) {
 	      h_Ele_fake_eta_bin->Fill(eta, totalW);
 	      h_Ele_fake_nPV->Fill(nvtx, totalW); 
 	      h_Ele_fake_sip3d->Fill(elSIP3D, totalW);
-	      h_Ele_fake_ptIso->Fill(ptIso, totalW);
+	      h_Ele_fake_ptIso->Fill(elptIso, totalW);
+	      h_Ele_ptIso ->Fill(elptIso, totalW);
+	      h_Ele_fake_pt->Fill(pt, totalW);
+	      h_Ele_fake_iso->Fill(ElectronIsolation(1), totalW); 
 
 	      if ( AnalysisLeptons[1].type == Tight)  {
 	      
@@ -539,13 +714,14 @@ void computeFR (TString theSample="WJets", bool doGen = false) {
 		h_Ele_signal_jetEt->Fill(jetEt, totalW);
 		h_Ele_signal_nPV->Fill(nvtx, totalW); 
 		h_Ele_signal_sip3d->Fill(elSIP3D, totalW);
-		h_Ele_signal_ptIso->Fill(ptIso, totalW);
-
+		h_Ele_signal_ptIso->Fill(elptIso, totalW);
+		h_Ele_signal_pt->Fill(pt, totalW);
+		h_Ele_signal_iso->Fill(ElectronIsolation(1), totalW); 
 	      }
 	    }	
 	  }
-	  
-    }    
+	  }
+    //    }    
     //  }
     //} // END WJETS MC SAMPLE 
 
@@ -604,41 +780,193 @@ void computeFR (TString theSample="WJets", bool doGen = false) {
     } // END TOP MC SAMPLE 
 
 
+    // Compute Prompt Rates from MC
+    //--------------------------------------------------------------------------  
+    if ( theSample == "ZJets_high" && doGen) {
+
+
+      for (int iMu1 = 0; iMu1 <  AnalysisLeptons.size(); iMu1++) {
+
+	if ( AnalysisLeptons[iMu1].v.Perp()  < 10 ) continue; 
+	if ( AnalysisLeptons[iMu1].type != Tight ) continue;
+	if ( AnalysisLeptons[iMu1].flavor != Electron && AnalysisLeptons[iMu1].flavor != Muon) continue;
+
+	for (int iMu2 = 0; iMu2 <  AnalysisLeptons.size(); iMu2++) {
+
+	  if ( AnalysisLeptons[iMu1].flavor != AnalysisLeptons[iMu2].flavor) continue; 
+	  if ( AnalysisLeptons[iMu1].index ==  AnalysisLeptons[iMu2].index) continue;
+
+	  if ( AnalysisLeptons[iMu2].v.Perp()  < 10 ) continue; 
+
+	  float Minv = (AnalysisLeptons[iMu1].v+AnalysisLeptons[iMu2].v).M();
+
+	  if ( (AnalysisLeptons[iMu1].charge)*(AnalysisLeptons[iMu2].charge) > 0 ) continue; 
+	  if ( Minv < 70 ||  Minv > 110 )     continue;
+ 
+	  float pt = std_vector_lepton_pt->at(iMu2);
+	  float eta = fabs(std_vector_lepton_eta->at(iMu2));
+     
+	  if (AnalysisLeptons[iMu1].flavor == Muon) {
+   	   
+	    h_Muon_fake_pT_bin->Fill(pt, totalW);
+	    h_Muon_fake_eta_bin->Fill(eta, totalW);
+	    h_Muon_fake_pt_eta_bin->Fill(pt, eta , totalW);
+
+	    if ( AnalysisLeptons[iMu2].type == Tight ) {
+
+	      h_Muon_signal_pT_bin->Fill(pt, totalW);
+	      h_Muon_signal_eta_bin->Fill(eta, totalW);
+	      h_Muon_signal_pt_eta_bin->Fill(pt, eta , totalW); 
+	    }
+	  }
+
+	  else if ( AnalysisLeptons[iMu1].flavor == Electron) {
+
+	    h_Ele_fake_pT_bin->Fill(pt, totalW);
+	    h_Ele_fake_eta_bin->Fill(eta, totalW);
+	    h_Ele_fake_pt_eta_bin->Fill(pt, eta , totalW); 
+
+	    if ( AnalysisLeptons[iMu2].type == Tight ) {
+
+	      h_Ele_signal_pT_bin->Fill(pt, totalW);
+	      h_Ele_signal_eta_bin->Fill(eta, totalW);
+	      h_Ele_signal_pt_eta_bin->Fill(pt, eta , totalW); 
+	    }
+	  }
+	  
+
+	}
+      }
+    }
 
     // Perform analysis
     //--------------------------------------------------------------------------  
-    if ( theSample == "dataEG") {
+
+   if ( AnalysisLeptons.size() != 1) continue;
+
+    bool passTrigger = true;
+
+    if ( theSample.Contains("dataDMu") && AnalysisLeptons[0].flavor == Muon) {
+      
+	passTrigger = false; 
 
       int iBit = std_vector_trigger->size();
-
       int nBits = 0; 
 
       for (int i=0; i < iBit; i++) {
 	if ( std_vector_trigger->at(i) == 1) {
-	  h_triggerBits->Fill(i);
+	  h_triggerBits->Fill(i); 	 
 	  nBits ++ ;
-	  } 
+	} 
       }
 
-      //if ( std_vector_trigger->at(2) != 1 ) continue;
+      //Selecting [17 - 20] HLT_Mu8, HLT_Mu17, HLT_Mu24, HLT_Mu34
+      //Selecting [21 - 24] HLT_Mu8_TrkIsoVVL, HLT_Mu17_TrkIsoVVL, HLT_Mu24_TrkIsoVVL, HLT_Mu34_TrkIsoVVL
+
+      if ( AnalysisLeptons[0].v.Perp() > 10   && 
+	   AnalysisLeptons[0].v.Perp() <= 20 &&
+	   (std_vector_trigger->at(22) == 1) ) {
+
+	     passTrigger = true;
+	     //totalW = totalW *(1567/1.702);  //Lumi HLT_Mu8: 0.57 pb; Lumi HLT_Mu8_TrkIsoVVL: 1.132 pb
+	     totalW = totalW *(2120.016/1.330);  //Lumi HLT_Mu8: 0.674 pb; Lumi HLT_Mu8_TrkIsoVVL: 1.330 pb
+      }
+
+      /*if ( std_vector_trigger->at(3) != 1 &&
+	   std_vector_trigger->at(4) != 1 &&
+	   std_vector_trigger->at(5) != 1 &&
+	   std_vector_trigger->at(6) != 1 
+	   ) continue;*/
+
+	if ( AnalysisLeptons[0].v.Perp() > 20  && 
+	     (std_vector_trigger->at(23) == 1 )) {
+
+	       passTrigger = true;
+	       //totalW = totalW *(1567/271.288);  //Lumi HLT_Mu17: 135.644 pb; Lumi HLT_Mu17_TrkIsoVVL: 135.644 pb
+	       totalW = totalW *(2120.016/194.130);  //Lumi HLT_Mu17: 190.107 pb; Lumi HLT_Mu17_TrkIsoVVL: 194.130 pb
+      }
+
+	
+	// Selecting [48-51] HLT_Mu8_TrkIsoVVL, HLT_Mu17_TrkIsoVVL, HLT_Mu24_TrkIsoVVL, HLT_Mu34_TrkIsoVVL
+	/*  if ( //std_vector_trigger->at(48) == 1 ||
+	   //std_vector_trigger->at(49) == 1 ||
+	   //std_vector_trigger->at(50) == 1 ||
+	   std_vector_trigger->at(49) == 1 
+	   ) passTrigger = true ;
+     
+      totalW =   totalW * (1.269 / 0.135); // HLT_Mu17_TrkIsoVVL_v2-->0.135 fb
+	*/
     }
 
+    if ( theSample.Contains("dataDEG") && AnalysisLeptons[0].flavor == Electron) {
+
+      passTrigger = false;
+
+      int iBit = std_vector_trigger->size();
+      int nBits = 0; 
+
+      for (int i=0; i < iBit; i++) {
+	if ( std_vector_trigger->at(i) == 1) {
+	  h_triggerBits->Fill(i); 	 
+	  nBits ++ ;
+	} 
+      }
+     
+      if ( AnalysisLeptons[0].v.Perp() > 10   && 
+	   AnalysisLeptons[0].v.Perp() <= 25  &&
+	   std_vector_trigger->at(26) == 1 )  {
+
+	passTrigger = true;
+	//totalW = totalW *(1567/0.459);  //Lumi HLT_Ele8: 0.459 pb;
+	totalW = totalW *(2120.016/0.534);  //Lumi HLT_Ele8: 0.534 pb;
+
+      }
+
+      /*if ( AnalysisLeptons[0].v.Perp() > 15   && 
+	   AnalysisLeptons[0].v.Perp() <= 30  &&
+	   (std_vector_trigger->at(27) == 1))  {
+	
+	passTrigger = true;
+	//totalW = totalW *(1567/12.473);  //Lumi HLT_Ele12: 6.379 pb; HLT_Ele12_Iso: 6.094
+	totalW = totalW *(2120.016/9.948);  //Lumi HLT_Ele12: 9.948 pb; HLT_Ele12_Iso: 8.876
+	}*/
+
+      if ( AnalysisLeptons[0].v.Perp() > 25  &&
+	   (std_vector_trigger->at(29) == 1))  {
+	
+	passTrigger = true;
+	//totalW = totalW *(1567/6.699);  //Lumi HLT_Ele23: 4.578 pb; HLT_Ele23_Iso: 2.121
+	totalW = totalW *(2120.016/3.072);  //Lumi HLT_Ele23: 6.147  pb; HLT_Ele23_Iso: 3.072
+      }
+
+      /*if ( std_vector_trigger->at(18) == 1 
+	   //std_vector_trigger->at(52) == 1 ||
+	   //std_vector_trigger->at(53) == 1 ||
+	   //std_vector_trigger->at(54) == 1 
+	   ) passTrigger = true ;
+      */
+      //totalW =   totalW * std_vector_trigger_prescale->at(4);
+    }
   
-   
-    if ( AnalysisLeptons.size() != 1) continue;
- 
-    //if ( theSample == "QCD" && fabs(std_vector_lepton_closejet_PartonFlavour->at(0)) == 5) continue;
+	  
+    if (!passTrigger) continue;
+
+    //cout << fabs(std_vector_lepton_closejet_PartonFlavour->at(0))  << endl;
+    if ( flavour!=0 && (theSample == "QCD2" || theSample == "QCDEM") && ( fabs(std_vector_lepton_closejet_PartonFlavour->at(0)) != flavour )) continue;
+//&& fabs(std_vector_lepton_closejet_PartonFlavour->at(0)) != 2)) continue;
 
     int index = AnalysisLeptons[0].index; 
+
+    h_LooseMuons_All->Fill(1);
+    h_LooseMuons_Iso->Fill(MuonIsolation(index));    
 
     double mt = giveMT(AnalysisLeptons[0].index, pfType1Met, pfType1Metphi); 
 
     AnalysisJets.clear();
-    
+  
     // --------> away jet 
     int jetsize = std_vector_jet_pt->size();
     
-    int jetIndex = 0; 
     
     for ( int j=0; j<jetsize; j++) {
       
@@ -649,29 +977,36 @@ void computeFR (TString theSample="WJets", bool doGen = false) {
       float pt = std_vector_jet_pt->at(j);
       float eta = std_vector_jet_eta->at(j);
       float phi = std_vector_jet_phi->at(j);
-      
-      if (pt < 0 ) continue;
-      
+     
+      if ( pt < 0) continue; 
+
       TLorentzVector jetvt;
       jetvt.SetPtEtaPhiM(pt, eta, phi, 0);
       
       jet_.v = jetvt;
-      
-      if ( jetvt.DeltaR(AnalysisLeptons[0].v) < 1 ) continue;
+
+      float dR =  jetvt.DeltaR(AnalysisLeptons[0].v);
+      //cout << j << "  " << dR << endl;
+      if ( dR < 1.0 ) continue;
       
       AnalysisJets.push_back(jet_);
       
     }
+   
     
-      
-    if ( AnalysisJets.size() < 1 ) continue;
+    //    cout << AnalysisJets.size() << endl;
     
-    if ( std_vector_lepton_pt->at(index)  < 15 ) continue; 
+    if ( AnalysisJets[0].v.Perp() <  inputJetEt) continue; 
+
+    //int jetIndex = AnalysisJets[0].index;  
+    //if ( std_vector_jet_pt->at(jetIndex) < 0 ) continue;
+    
+    if ( std_vector_lepton_pt->at(index)  < 10 ) continue; 
     
     if (doGen) continue;
-    
+      
     //if ( fabs(std_vector_lepton_closejet_PartonFlavour->at(0)) != 5) continue;
-    //if ( std_vector_lepton_closejet_drlj->at(0) > 0.3 ) continue;
+    //if ( std_vector_lepton_closejet_drlj->at(0) > 0.3 )   continue;
 
     if ( AnalysisLeptons[0].flavor == Muon ) { 
 	  
@@ -682,6 +1017,8 @@ void computeFR (TString theSample="WJets", bool doGen = false) {
       float muSIP3D = std_vector_lepton_muSIP3D->at(index);
       float elSIP3D = std_vector_lepton_elSIP3D->at(index);
       float ptIso = pt*(1+MuonIsolation(index));
+
+      //cout << std_vector_lepton_closejet_drlj->at(index) << endl;
 
       // control plots
       h_Muon_fake_Mt->Fill(mt, totalW);
@@ -696,12 +1033,12 @@ void computeFR (TString theSample="WJets", bool doGen = false) {
 	h_Muon_signal_Met->Fill(pfType1Met, totalW);
 	h_Muon_signal_pt->Fill(pt, totalW);
 	h_Muon_signal_CRjetEt->Fill(pt, totalW);
-	if ( pfType1Met > 20 )  h_Muon_signal_Mt_Met20->Fill(mt, totalW);     
+	if ( pfType1Met > 30 )  h_Muon_signal_Mt_Met20->Fill(mt, totalW);     
       
       }
 
 
-      //if ( mt < 20 && pfType1Met < 20 ) { 
+     if ( mt < 20 && pfType1Met < 20 ) { 
 
 	  h_Muon_fake_pT_bin->Fill(pt, totalW);
 	  h_Muon_fake_eta_bin->Fill(eta, totalW);
@@ -715,6 +1052,12 @@ void computeFR (TString theSample="WJets", bool doGen = false) {
 	  h_Muon_pt->Fill(pt, totalW);
 	  h_Muon_fake_sip3d->Fill(muSIP3D, totalW);
 	  h_Muon_fake_ptIso->Fill(ptIso, totalW);
+	  h_Muon_ptIso ->Fill(ptIso, totalW);
+	  h_Muon_fake_ptIso_eta_bin->Fill(ptIso, eta , totalW); 
+	  h_Muon_jetEt_pt->Fill(jetEt, pt, totalW); 
+	  h_Muon_fake_pt->Fill(pt, totalW);
+	  h_Muon_fake_iso->Fill(MuonIsolation(1), totalW); 
+
 
 	  if ( AnalysisLeptons[0].type == Tight)  {
 	    
@@ -727,8 +1070,12 @@ void computeFR (TString theSample="WJets", bool doGen = false) {
 	    h_Muon_signal_jetEt->Fill(jetEt, totalW);
 	    h_Muon_signal_sip3d->Fill(muSIP3D, totalW);
 	    h_Muon_signal_ptIso->Fill(ptIso, totalW);
+	    h_Muon_signal_pt->Fill(pt, totalW);
+	    h_Muon_signal_iso->Fill(MuonIsolation(1), totalW); 
+	    h_Muon_signal_ptIso_eta_bin->Fill(ptIso, eta , totalW); 
+	  
 	  }    
-	  //}
+     }
     }
 	
     if ( AnalysisLeptons[0].flavor == Electron ) { 
@@ -739,7 +1086,9 @@ void computeFR (TString theSample="WJets", bool doGen = false) {
       float jetEt = std_vector_lepton_closejet_pt->at(index);
       float elSIP3D = std_vector_lepton_elSIP3D->at(index);
       float ptIso = pt*(1+MuonIsolation(index));
+      float elptIso = pt*(1+ElectronIsolation(index));
 
+     
       // control plots
       h_Ele_fake_Mt->Fill(mt, totalW);
       h_Ele_fake_Met->Fill(pfType1Met, totalW);
@@ -758,7 +1107,7 @@ void computeFR (TString theSample="WJets", bool doGen = false) {
 
       }
 
-      //if ( mt < 20 && pfType1Met < 20 ) { 
+      if ( mt < 20 && pfType1Met < 20 ) { 
 
 	  h_Ele_fake_pT_bin->Fill(pt, totalW);
 	  h_Ele_fake_eta_bin->Fill(eta, totalW);
@@ -768,8 +1117,11 @@ void computeFR (TString theSample="WJets", bool doGen = false) {
 	  h_Ele_fake_jetEt->Fill(jetEt, totalW);
 	  h_Ele_pt->Fill(pt, totalW);
 	  h_Ele_fake_sip3d->Fill(elSIP3D, totalW);
-	  h_Ele_fake_ptIso->Fill(ptIso, totalW);
-
+	  h_Ele_fake_ptIso->Fill(elptIso, totalW);
+	  h_Ele_ptIso ->Fill(elptIso, totalW);
+	  h_Ele_fake_pt->Fill(pt, totalW);
+	  h_Ele_fake_iso->Fill(ElectronIsolation(1), totalW); 
+	  h_Ele_fake_ptIso_eta_bin->Fill(elptIso, eta , totalW); 
 
 	  if ( AnalysisLeptons[0].type == Tight)  {
 	    
@@ -779,14 +1131,18 @@ void computeFR (TString theSample="WJets", bool doGen = false) {
 	    h_Ele_signal_nPV->Fill(nvtx, totalW); 
 	    h_Ele_signal_jetEt->Fill(jetEt, totalW);
 	    h_Ele_signal_sip3d->Fill(elSIP3D, totalW);
-	    h_Ele_signal_ptIso->Fill(ptIso, totalW);
+	    h_Ele_signal_ptIso->Fill(elptIso, totalW);
+	    h_Ele_signal_pt->Fill(pt, totalW);
+	    h_Ele_signal_iso->Fill(ElectronIsolation(1), totalW); 
+	    h_Ele_signal_ptIso_eta_bin->Fill(elptIso, eta , totalW); 
+
 	  } 
-	  //}
+	  }
     }
   
     
 
-  } //end Loop
+    } //end Loop
 
 
   // Save output
@@ -823,7 +1179,7 @@ bool IsTightLepton(int k)
 	dxyCut = 0.02;
       }
 
-      is_tight_lepton = ( std_vector_lepton_isTightMuon->at(k)              && 
+      is_tight_lepton = ( std_vector_lepton_isMediumMuon->at(k)              && 
 			  fabs(std_vector_lepton_BestTrackdz->at(k))  < 0.1       && 
 			  fabs(std_vector_lepton_BestTrackdxy->at(k)) < dxyCut );
 	}
@@ -831,7 +1187,7 @@ bool IsTightLepton(int k)
   // Electron cut based medium ID
   else if (fabs(std_vector_lepton_flavour->at(k)) == 11)
     {
-      is_tight_lepton = std_vector_lepton_eleIdMedium->at(k);
+      is_tight_lepton = std_vector_lepton_eleIdTight->at(k);
     }
   
   return is_tight_lepton;
@@ -899,7 +1255,7 @@ bool IsIsolatedLepton(int k)
   bool is_isolated_lepton = false;
 
   if      (fabs(id) == 11) is_isolated_lepton = true;  //(ElectronIsolation(k) < 0.15);
-  else if (fabs(id) == 13) is_isolated_lepton = (MuonIsolation(k)   < 0.12);
+  else if (fabs(id) == 13) is_isolated_lepton = (MuonIsolation(k)   < 0.15);
   
   return is_isolated_lepton;
 }
@@ -917,17 +1273,58 @@ bool IsLooseLepton(int k)
   // Muon tight ID
   if (fabs(std_vector_lepton_flavour->at(k)) == 13)
     {
+      float dxyCut = 0;
+      
+      if ( std_vector_lepton_pt->at(k) < 20 ) { 
+	dxyCut = 0.01;
+      }	else {
+	dxyCut = 0.02;
+      }
      
-      is_loose_lepton = ( std_vector_lepton_isTightMuon->at(k)                   && 
+      is_loose_lepton = ( std_vector_lepton_isMediumMuon->at(k)                   && 
 			  fabs(std_vector_lepton_BestTrackdz->at(k))  < 0.1      && 
-			  fabs(std_vector_lepton_BestTrackdxy->at(k)) < 0.2 ); 
+			  fabs(std_vector_lepton_BestTrackdxy->at(k)) < dxyCut); 
     }
-
+  
 
   // Electron cut based medium ID
   else if (fabs(std_vector_lepton_flavour->at(k)) == 11)
     {
-      is_loose_lepton = std_vector_lepton_eleIdVeto->at(k);
+      // Faltan los aislamientos!!!!!!
+
+      float aeta = fabs(std_vector_lepton_eta->at(k));
+      
+      if (aeta <= 1.479) {
+	
+	if (fabs(std_vector_electron_dEtaIn->at(k)) < 0.01               &&
+	    fabs(std_vector_electron_dPhiIn->at(k)) < 0.04               &&
+	    std_vector_electron_full5x5_sigmaIetaIeta->at(k)    < 0.011              &&
+	    std_vector_electron_hOverE->at(k)              < 0.08               &&
+	    std_vector_electron_ooEmooP->at(k) < 0.01               && //????
+	    std_vector_electron_expectedMissingInnerHits->at(k)<=2  &&
+	    std_vector_electron_d0->at(k)      < 0.1                &&
+	    fabs(std_vector_electron_dz->at(k))< 0.373              &&
+	    std_vector_electron_passConversionVeto )
+	  {  
+	    is_loose_lepton = true; 
+	  }
+      }
+      else if (aeta > 1.479 && aeta < 2.5) { 
+
+	if (fabs(std_vector_electron_dEtaIn->at(k)) < 0.01               &&
+	    fabs(std_vector_electron_dPhiIn->at(k)) < 0.08               &&
+	    std_vector_electron_full5x5_sigmaIetaIeta->at(k)    < 0.031              &&
+	    std_vector_electron_hOverE->at(k)              < 0.08               &&
+	    std_vector_electron_ooEmooP->at(k) < 0.01               &&
+	    std_vector_electron_expectedMissingInnerHits->at(k)<=1  &&
+	    std_vector_electron_d0->at(k)      < 0.2                &&
+	    fabs(std_vector_electron_dz->at(k))< 0.602              &&
+	    std_vector_electron_passConversionVeto )
+	  {  
+	    is_loose_lepton = true; 
+	  }
+      }
+
     }
   
   return is_loose_lepton;
@@ -945,7 +1342,7 @@ bool IsLooseIsolatedLepton(int k)
   bool is_isolated_lepton = false;
 
   if      (fabs(id) == 11) is_isolated_lepton = true;  //(ElectronIsolation(k) < 0.15);
-  else if (fabs(id) == 13) is_isolated_lepton = (MuonIsolation(k) < 0.5);
+  else if (fabs(id) == 13) is_isolated_lepton = (MuonIsolation(k) < 0.4);
   
   return is_isolated_lepton;
 }

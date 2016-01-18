@@ -100,6 +100,7 @@ vector<float>   *std_vector_lepton_isTightMuon;
 vector<float>   *std_vector_lepton_isMediumMuon; 
 vector<float>   *std_vector_lepton_eleIdMedium; 
 vector<float>   *std_vector_lepton_eleIdVeto; 
+vector<float>   *std_vector_lepton_eleIdTight;
 vector<float>   *std_vector_lepton_chargedHadronIso; 
 vector<float>   *std_vector_lepton_photonIso;
 vector<float>   *std_vector_lepton_neutralHadronIso;
@@ -107,6 +108,16 @@ vector<float>   *std_vector_lepton_sumPUPt;
 vector<float>   *std_vector_electron_effectiveArea;
 vector<float>   *std_vector_lepton_BestTrackdz;
 vector<float>   *std_vector_lepton_BestTrackdxy;
+
+vector<float>   *std_vector_electron_dEtaIn;
+vector<float>   *std_vector_electron_dPhiIn;
+vector<float>   *std_vector_electron_full5x5_sigmaIetaIeta;
+vector<float>   *std_vector_electron_hOverE;
+vector<float>   *std_vector_electron_ooEmooP;
+vector<float>   *std_vector_electron_expectedMissingInnerHits;
+vector<float>   *std_vector_electron_d0;
+vector<float>   *std_vector_electron_dz;
+vector<float>   *std_vector_electron_passConversionVeto;
 
 
 //------------------------------------------------------------------------------
@@ -122,7 +133,7 @@ int addWJetsWeights(string input="latino_ll_LP_test.root",
 
   //addWJetsWeights("latino_Run2015D_05Oct2015_DoubleMuon_0.root", 1.0, "/gpfs/csic_projects/tier3data/LatinosSkims/RunII/Data13TeV/21Oct/25ns/","output/", true, "WW"); 
 
-  //  addWJetsWeights("latino_WJetsToLNu.root", 1.0, ""/gpfs/csic_projects/tier3data/LatinosSkims/RunII/MC_Spring15/21Oct/25ns/, "output/", true, "WW"); 
+  //  addWJetsWeights("latino_WJetsToLNu.root", 1.0, "/gpfs/csic_projects/tier3data/LatinosSkims/RunII/MC_Spring15/21Oct/25ns/", "output/", true, "WW"); 
  //  addWJetsWeights("latino_WJetsToLNu.root", 1.0, "/gpfs/csic_projects/tier3data/LatinosSkims/RunII/cernbox/21Oct_25ns_MC__l2sel__hadd/", "output/", true, "WW"); 
 
   printf("Start W+jets weights with %s, lumi=%.3f, indir=%s, outdir=%s, addWeight option %d\n",
@@ -194,13 +205,25 @@ int addWJetsWeights(string input="latino_ll_LP_test.root",
  tree->SetBranchAddress("std_vector_lepton_isMediumMuon", &std_vector_lepton_isMediumMuon);
  tree->SetBranchAddress("std_vector_lepton_eleIdMedium", &std_vector_lepton_eleIdMedium);
  tree->SetBranchAddress("std_vector_lepton_eleIdVeto", &std_vector_lepton_eleIdVeto);
- tree->SetBranchAddress("std_vector_lepton_chargedHadronIso", &std_vector_lepton_chargedHadronIso);
+ tree->SetBranchAddress("std_vector_lepton_eleIdTight", &std_vector_lepton_eleIdTight); 
+tree->SetBranchAddress("std_vector_lepton_chargedHadronIso", &std_vector_lepton_chargedHadronIso);
  tree->SetBranchAddress("std_vector_lepton_photonIso", &std_vector_lepton_photonIso);
  tree->SetBranchAddress("std_vector_lepton_neutralHadronIso", &std_vector_lepton_neutralHadronIso);
  tree->SetBranchAddress("std_vector_lepton_sumPUPt", &std_vector_lepton_sumPUPt);
  tree->SetBranchAddress("std_vector_electron_effectiveArea", &std_vector_electron_effectiveArea);
  tree->SetBranchAddress("std_vector_lepton_BestTrackdz", &std_vector_lepton_BestTrackdz);
  tree->SetBranchAddress("std_vector_lepton_BestTrackdxy", &std_vector_lepton_BestTrackdxy);
+
+
+  tree->SetBranchAddress("std_vector_electron_dEtaIn", &std_vector_electron_dEtaIn);
+  tree->SetBranchAddress("std_vector_electron_dPhiIn", &std_vector_electron_dPhiIn);
+  tree->SetBranchAddress("std_vector_electron_full5x5_sigmaIetaIeta", &std_vector_electron_full5x5_sigmaIetaIeta);
+  tree->SetBranchAddress("std_vector_electron_hOverE",&std_vector_electron_hOverE);
+  tree->SetBranchAddress("std_vector_electron_ooEmooP",&std_vector_electron_ooEmooP);
+  tree->SetBranchAddress("std_vector_electron_expectedMissingInnerHits", &std_vector_electron_expectedMissingInnerHits);
+  tree->SetBranchAddress("std_vector_electron_d0",&std_vector_electron_d0);
+  tree->SetBranchAddress("std_vector_electron_dz", &std_vector_electron_dz);
+  tree->SetBranchAddress("std_vector_electron_passConversionVeto", &std_vector_electron_passConversionVeto);
 
 
 //--- New branches to be added
@@ -332,7 +355,7 @@ int addWJetsWeights(string input="latino_ll_LP_test.root",
        lep.flavour = Muon; 
      }
     
-     if (pt <=15 ) continue;
+     if (pt <=10 ) continue;
      if (fabs(eta) >= 2.4 ) continue;  
 
      if ( IsTightLepton(i) &&  IsIsolatedLepton(i) ) { 
@@ -600,7 +623,8 @@ TH2F* LoadHistogram(TString filename,
 //------------------------------------------------------------------------------
 bool IsTightLepton(int k)
 {
-  bool is_tight_lepton = false;
+ 
+bool is_tight_lepton = false;
 
   // Muon tight ID
   if (fabs(std_vector_lepton_flavour->at(k)) == 13)
@@ -608,26 +632,24 @@ bool IsTightLepton(int k)
       float dxyCut = 0;
 	
       if ( std_vector_lepton_pt->at(k) < 20 ) { 
-	dxyCut = 0.02;
+	dxyCut = 0.01;
       }	else {
 	dxyCut = 0.02;
       }
 
       is_tight_lepton = ( std_vector_lepton_isMediumMuon->at(k)              && 
-			  //fabs(std_vector_lepton_BestTrackdz->at(k))  < 0.1       && 
-			  //fabs(std_vector_lepton_BestTrackdxy->at(k)) < dxyCut );
-			  std_vector_lepton_BestTrackdz->at(k)  < 0.1       && 
-			  std_vector_lepton_BestTrackdxy->at(k) < dxyCut );
-
-    }
+			  fabs(std_vector_lepton_BestTrackdz->at(k))  < 0.1       && 
+			  fabs(std_vector_lepton_BestTrackdxy->at(k)) < dxyCut );
+	}
 
   // Electron cut based medium ID
   else if (fabs(std_vector_lepton_flavour->at(k)) == 11)
     {
-      is_tight_lepton = std_vector_lepton_eleIdMedium->at(k);
+      is_tight_lepton = std_vector_lepton_eleIdTight->at(k);
     }
   
   return is_tight_lepton;
+
 
 }
 
@@ -706,34 +728,65 @@ bool IsIsolatedLepton(int k)
 //------------------------------------------------------------------------------
 bool IsLooseLepton(int k)
 {
-
-  bool is_loose_lepton = false;
-
+ bool is_loose_lepton = false;
+  
   // Muon tight ID
   if (fabs(std_vector_lepton_flavour->at(k)) == 13)
     {
-
-        float dxyCut = 0;
+      float dxyCut = 0;
       
       if ( std_vector_lepton_pt->at(k) < 20 ) { 
-	dxyCut = 0.02;
+	dxyCut = 0.01;
       }	else {
 	dxyCut = 0.02;
       }
- 
-      is_loose_lepton = ( std_vector_lepton_isMediumMuon->at(k)              && 
-			  //abs(std_vector_lepton_BestTrackdz->at(k))  < 0.1       && 
-			  //abs(std_vector_lepton_BestTrackdxy->at(k)) < dxyCut ); 
-			  std_vector_lepton_BestTrackdz->at(k)  < 0.1       && 
-			  std_vector_lepton_BestTrackdxy->at(k) < dxyCut ) ;  
+     
+      is_loose_lepton = ( std_vector_lepton_isMediumMuon->at(k)                   && 
+			  fabs(std_vector_lepton_BestTrackdz->at(k))  < 0.1      && 
+			  fabs(std_vector_lepton_BestTrackdxy->at(k)) < dxyCut); 
     }
+  
 
   // Electron cut based medium ID
   else if (fabs(std_vector_lepton_flavour->at(k)) == 11)
     {
-       is_loose_lepton = std_vector_lepton_eleIdVeto->at(k);
-    }
+      // Faltan los aislamientos!!!!!!
 
+      float aeta = fabs(std_vector_lepton_eta->at(k));
+      
+      if (aeta <= 1.479) {
+	
+	if (fabs(std_vector_electron_dEtaIn->at(k)) < 0.01               &&
+	    fabs(std_vector_electron_dPhiIn->at(k)) < 0.04               &&
+	    std_vector_electron_full5x5_sigmaIetaIeta->at(k)    < 0.011              &&
+	    std_vector_electron_hOverE->at(k)              < 0.08               &&
+	    std_vector_electron_ooEmooP->at(k) < 0.01               && //????
+	    std_vector_electron_expectedMissingInnerHits->at(k)<=2  &&
+	    std_vector_electron_d0->at(k)      < 0.1                &&
+	    fabs(std_vector_electron_dz->at(k))< 0.373              &&
+	    std_vector_electron_passConversionVeto )
+	  {  
+	    is_loose_lepton = true; 
+	  }
+      }
+      else if (aeta > 1.479 && aeta < 2.5) { 
+
+	if (fabs(std_vector_electron_dEtaIn->at(k)) < 0.01               &&
+	    fabs(std_vector_electron_dPhiIn->at(k)) < 0.08               &&
+	    std_vector_electron_full5x5_sigmaIetaIeta->at(k)    < 0.031              &&
+	    std_vector_electron_hOverE->at(k)              < 0.08               &&
+	    std_vector_electron_ooEmooP->at(k) < 0.01               &&
+	    std_vector_electron_expectedMissingInnerHits->at(k)<=1  &&
+	    std_vector_electron_d0->at(k)      < 0.2                &&
+	    fabs(std_vector_electron_dz->at(k))< 0.602              &&
+	    std_vector_electron_passConversionVeto )
+	  {  
+	    is_loose_lepton = true; 
+	  }
+      }
+
+    }
+  
   return is_loose_lepton;
 }
 
