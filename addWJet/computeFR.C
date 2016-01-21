@@ -75,6 +75,8 @@ std::vector<Lepton> AnalysisLeptons;
 std::vector<Lepton> AnalysisGenLeptons;                                                                   
 
 std::vector<Jet> AnalysisJets;
+std::vector<Jet> AnalysisLeptonJets;
+
 
 Float_t          jetRho;
 Float_t          puW;
@@ -138,6 +140,7 @@ vector<float>   *std_vector_lepton_closejet_eta;
 vector<float>   *std_vector_lepton_closejet_phi;
 vector<float>   *std_vector_lepton_closejet_PartonFlavour;
 vector<float>   *std_vector_lepton_closejet_drlj;
+vector<float>   *std_vector_jet_csvv2ivf;
 
 Float_t  GEN_weight_SM = 1.0;
 Float_t  negativeWeight = 1.0;
@@ -173,7 +176,7 @@ void computeFR (TString theSample="WJets", bool doGen = false, int flavour = 0, 
   if (doGen) {
     root_output = new TFile(path + theSample + "_FR_FakeRate.root", "recreate");
   }  else {
-    root_output =  new TFile(path + theSample + jetFlavour + "jet"+ jet +"_FakeRate_2120pb.root", "recreate");
+    root_output =  new TFile(path + theSample + jetFlavour + "jet"+ jet +"_FakeRate_2120pb_NoBjets.root", "recreate");
   }
 
   //-- Define histograms 
@@ -482,7 +485,7 @@ void computeFR (TString theSample="WJets", bool doGen = false, int flavour = 0, 
   tree->SetBranchAddress("std_vector_leptonGen_mstatus", &std_vector_leptonGen_mstatus);
   tree->SetBranchAddress("std_vector_trigger", &std_vector_trigger);
   tree->SetBranchAddress("std_vector_trigger_prescale", &std_vector_trigger_prescale);
-
+  tree->SetBranchAddress("std_vector_jet_csvv2ivf", &std_vector_jet_csvv2ivf);
   tree->SetBranchAddress("std_vector_jet_pt", &std_vector_jet_pt);
   tree->SetBranchAddress("std_vector_jet_eta", &std_vector_jet_eta);
   tree->SetBranchAddress("std_vector_jet_phi", &std_vector_jet_phi);
@@ -602,6 +605,8 @@ void computeFR (TString theSample="WJets", bool doGen = false, int flavour = 0, 
 
      if ( !IsLooseLepton(i)) continue;  
      if ( !IsLooseIsolatedLepton(i) ) continue;   
+
+     if  (pt <= 10) continue;
 
      Lepton lep;
     
@@ -963,7 +968,9 @@ void computeFR (TString theSample="WJets", bool doGen = false, int flavour = 0, 
     double mt = giveMT(AnalysisLeptons[0].index, pfType1Met, pfType1Metphi); 
 
     AnalysisJets.clear();
-  
+    AnalysisLeptonJets.clear();
+
+
     // --------> away jet 
     int jetsize = std_vector_jet_pt->size();
     
@@ -977,7 +984,8 @@ void computeFR (TString theSample="WJets", bool doGen = false, int flavour = 0, 
       float pt = std_vector_jet_pt->at(j);
       float eta = std_vector_jet_eta->at(j);
       float phi = std_vector_jet_phi->at(j);
-     
+      float btag = std_vector_jet_csvv2ivf->at(j);     
+
       if ( pt < 0) continue; 
 
       TLorentzVector jetvt;
@@ -987,21 +995,25 @@ void computeFR (TString theSample="WJets", bool doGen = false, int flavour = 0, 
 
       float dR =  jetvt.DeltaR(AnalysisLeptons[0].v);
       //cout << j << "  " << dR << endl;
-      if ( dR < 1.0 ) continue;
-      
-      AnalysisJets.push_back(jet_);
-      
+
+      if ( dR <= 0.4 && btag > 0.605) { 
+	AnalysisLeptonJets.push_back(jet_);
+
+      } else if ( dR > 1) {       
+	AnalysisJets.push_back(jet_);
+      }
     }
    
-    
-    //    cout << AnalysisJets.size() << endl;
-    
-    if ( AnalysisJets[0].v.Perp() <  inputJetEt) continue; 
+     
+    //if ( AnalysisLeptonJets.size() > 0 ) continue;
+    if (AnalysisJets[0].v.Perp() <  inputJetEt) continue; 
+
+
 
     //int jetIndex = AnalysisJets[0].index;  
     //if ( std_vector_jet_pt->at(jetIndex) < 0 ) continue;
     
-    if ( std_vector_lepton_pt->at(index)  < 10 ) continue; 
+    
     
     if (doGen) continue;
       
@@ -1016,8 +1028,8 @@ void computeFR (TString theSample="WJets", bool doGen = false, int flavour = 0, 
       float jetEt = std_vector_lepton_closejet_pt->at(index);
       float muSIP3D = std_vector_lepton_muSIP3D->at(index);
       float elSIP3D = std_vector_lepton_elSIP3D->at(index);
-      float ptIso = pt*(1+MuonIsolation(index));
-
+      float ptIso = pt*(1+MuonIsolation(index));//pt*(1+min(0.0,(MuonIsolation(index)-0.15)));
+      float drlj =  std_vector_lepton_closejet_drlj->at(index);
       //cout << std_vector_lepton_closejet_drlj->at(index) << endl;
 
       // control plots
@@ -1304,7 +1316,7 @@ bool IsLooseLepton(int k)
 	    std_vector_electron_expectedMissingInnerHits->at(k)<=2  &&
 	    std_vector_electron_d0->at(k)      < 0.1                &&
 	    fabs(std_vector_electron_dz->at(k))< 0.373              &&
-	    std_vector_electron_passConversionVeto )
+	    std_vector_electron_passConversionVeto->at(k) )
 	  {  
 	    is_loose_lepton = true; 
 	  }
@@ -1319,7 +1331,7 @@ bool IsLooseLepton(int k)
 	    std_vector_electron_expectedMissingInnerHits->at(k)<=1  &&
 	    std_vector_electron_d0->at(k)      < 0.2                &&
 	    fabs(std_vector_electron_dz->at(k))< 0.602              &&
-	    std_vector_electron_passConversionVeto )
+	    std_vector_electron_passConversionVeto->at(k))
 	  {  
 	    is_loose_lepton = true; 
 	  }
