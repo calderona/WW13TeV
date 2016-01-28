@@ -52,17 +52,22 @@ bool  IsTightLepton(int k);
 bool  IsLooseLepton(int k);
 bool  IsLooseIsolatedLepton(int k);
 
-Double_t GetPPFWeight(int a, int b);
-Double_t GetPFFWeight(int a, int b);
-Double_t GetFFFWeight(int a, int b);
+Double_t GetPPFWeight(int a, int b, int s = 2);
+Double_t GetPFFWeight(int a, int b, int s = 2);
+Double_t GetFFFWeight(int a, int b, int s = 2);
 
-Double_t GetPFWeight(int a, int b);
-Double_t GetFFWeight(int a, int b);
+Double_t GetPFWeight(int a, int b, int s = 2);
+Double_t GetFFWeight(int a, int b, int s = 2);
 
-Float_t GetFactor(TH2F*   h2,
+Double_t GetFactor(TH2F*   h2,
 		  Float_t leptonPt,
 		  Float_t leptonEta,
 		  Float_t leptonPtMax = -999.);
+
+Double_t GetFactorError(TH2F*   h2,
+		       Float_t leptonPt,
+		       Float_t leptonEta,
+		       Float_t leptonPtMax = -999.);
 
 //------------------------------------------------------------------------------
 // Define structures & GLB variables 
@@ -80,6 +85,7 @@ enum { mu10, mu15, mu20, mu25, mu30, mu35, mu45};
 TString elecJetPt[nEleJetET] = {"25", "35", "45"};
 enum {ele25, ele35, ele45}; 
 
+enum {up, down};
 
 enum {Muon, Electron, Unknown};
 
@@ -252,8 +258,8 @@ tree->SetBranchAddress("std_vector_lepton_chargedHadronIso", &std_vector_lepton_
  Float_t weightFF, weightPF, weightUp, weightDown; 
  Float_t weightFFF, weightPFF, weightPPF; 
 
- Float_t weight3l, weight3lUp, weight3lDown; 
- Float_t weight2l0j, weight2l1j, weight2l2j, weight2l0jUp, weight2l1jUp, weight2l2jUp, weight2l0jDown, weight2l1jDown, weight2l2jDown;
+ Float_t weight3l, weight3lUp, weight3lDown, weight3lstatUp, weight3lstatDown; 
+ Float_t weight2l0j, weight2l1j, weight2l2j, weight2l0jUp, weight2l1jUp, weight2l2jUp, weight2l0jDown, weight2l1jDown, weight2l2jDown, weight2l0jstatUp, weight2l1jstatUp, weight2l2jstatUp, weight2l0jstatDown, weight2l1jstatDown, weight2l2jstatDown;
 
 
  tree->SetBranchStatus("*", 1);
@@ -261,9 +267,17 @@ tree->SetBranchAddress("std_vector_lepton_chargedHadronIso", &std_vector_lepton_
  tree->SetBranchStatus("fakeW3l",               0);
  tree->SetBranchStatus("fakeW3lUp",             0);
  tree->SetBranchStatus("fakeW3lDown",           0);
+ tree->SetBranchStatus("fakeW3lstatUp",         0);
+ tree->SetBranchStatus("fakeW3lstatDown",       0);
  tree->SetBranchStatus("fakeW2l0j",             0);
  tree->SetBranchStatus("fakeW2l1j",             0);
  tree->SetBranchStatus("fakeW2l2j",             0);
+ tree->SetBranchStatus("fakeW2l0jstatUp",       0);
+ tree->SetBranchStatus("fakeW2l1jstatUp",       0);
+ tree->SetBranchStatus("fakeW2l2jstatUp",       0);
+ tree->SetBranchStatus("fakeW2l0jstatDown",     0);
+ tree->SetBranchStatus("fakeW2l1jstatDown",     0);
+ tree->SetBranchStatus("fakeW2l2jstatDown",     0);
  tree->SetBranchStatus("fakeW2l0jUp",           0);
  tree->SetBranchStatus("fakeW2l1jUp",           0);
  tree->SetBranchStatus("fakeW2l2jUp",           0);
@@ -304,6 +318,8 @@ tree->SetBranchAddress("std_vector_lepton_chargedHadronIso", &std_vector_lepton_
    //newtree->Branch("fakeW2l",            &weight2l,                "fakeW2l/F");
    newtree->Branch("fakeW3lUp",          &weight3lUp,              "fakeW3lUp/F");
    newtree->Branch("fakeW3lDown",        &weight3lDown,            "fakeW3lDown/F");
+   newtree->Branch("fakeW3lstatUp",      &weight3lstatUp,          "fakeW3lstatUp/F");
+   newtree->Branch("fakeW3lstatDown",    &weight3lstatDown,        "fakeW3lstatDown/F");
    newtree->Branch("fakeW2l0j",          &weight2l0j,              "fakeW2l0j/F");
    newtree->Branch("fakeW2l1j",          &weight2l1j,              "fakeW2l1j/F");
    newtree->Branch("fakeW2l2j",          &weight2l2j,              "fakeW2l2j/F");
@@ -313,6 +329,12 @@ tree->SetBranchAddress("std_vector_lepton_chargedHadronIso", &std_vector_lepton_
    newtree->Branch("fakeW2l0jDown",      &weight2l0jDown,          "fakeW2l0jDown/F");
    newtree->Branch("fakeW2l1jDown",      &weight2l1jDown,          "fakeW2l1jDown/F");
    newtree->Branch("fakeW2l2jDown",      &weight2l2jDown,          "fakeW2l2jDown/F");
+   newtree->Branch("fakeW2l0jstatUp",    &weight2l0jstatUp,        "fakeW2l0jstatUp/F");
+   newtree->Branch("fakeW2l1jstatUp",    &weight2l1jstatUp,        "fakeW2l1jstatUp/F");
+   newtree->Branch("fakeW2l2jstatUp",    &weight2l2jstatUp,        "fakeW2l2jstatUp/F");
+   newtree->Branch("fakeW2l0jstatDown",  &weight2l0jstatDown,      "fakeW2l0jstatDown/F");
+   newtree->Branch("fakeW2l1jstatDown",  &weight2l1jstatDown,      "fakeW2l1jstatDown/F");
+   newtree->Branch("fakeW2l2jstatDown",  &weight2l2jstatDown,      "fakeW2l2jstatDown/F");
 
 
    //newtree->Branch("fakeWJet",         &weightPF,              "fakeWJet/F");
@@ -364,10 +386,13 @@ tree->SetBranchAddress("std_vector_lepton_chargedHadronIso", &std_vector_lepton_
     weight2l0j = 0.0; weight2l1j = 0.0; weight2l2j = 0.0;
     weight2l0jUp = 0.0; weight2l1jUp = 0.0; weight2l2jUp = 0.0;
     weight2l0jDown = 0.0; weight2l1jDown = 0.0; weight2l2jDown = 0.0;
+    weight2l0jstatUp = 0.0; weight2l1jstatUp = 0.0; weight2l2jstatUp = 0.0;
+    weight2l0jstatDown = 0.0; weight2l1jstatDown = 0.0; weight2l2jstatDown = 0.0;
     weightPF = 0.0; 
     weightFF = 0.0; 
 
     weight3l = 0.0; weight3lUp = 0.0; weight3lDown = 0.0;
+    weight3lstatUp = 0.0; weight3lstatDown = 0.0;
     weightPPF = 0.0; 
     weightPFF = 0.0; 
     weightFFF = 0.0; 
@@ -450,6 +475,8 @@ tree->SetBranchAddress("std_vector_lepton_chargedHadronIso", &std_vector_lepton_
     // Data-driven estimates 2 lepton case
     //----------------------------------------------------------------------------
     
+
+    
     if ( AnalysisLeptons.size() == 2 )  {
       weightPF    = float(GetPFWeight(int(mu20), int(ele35))); 
       weightFF    = float(GetFFWeight(int(mu20), int(ele35))); 
@@ -462,17 +489,26 @@ tree->SetBranchAddress("std_vector_lepton_chargedHadronIso", &std_vector_lepton_
       weight2l0jDown = float(GetPFWeight(int(mu10), int(ele25))) + float(GetFFWeight(int(mu10), int(ele25)));
       weight2l1jDown = float(GetPFWeight(int(mu15), int(ele25))) + float(GetFFWeight(int(mu15), int(ele25)));
       weight2l2jDown = float(GetPFWeight(int(mu25), int(ele25))) + float(GetFFWeight(int(mu25), int(ele25)));
+      weight2l0jstatUp = float(GetPFWeight(int(mu20), int(ele35), int(up))) + float(GetFFWeight(int(mu30), int(ele45), int(up)));
+      weight2l1jstatUp = float(GetPFWeight(int(mu25), int(ele35), int(up))) + float(GetFFWeight(int(mu25), int(ele35), int(up)));
+      weight2l2jstatUp = float(GetPFWeight(int(mu35), int(ele35), int(up))) + float(GetFFWeight(int(mu35), int(ele35), int(up)));
+      weight2l0jstatDown = float(GetPFWeight(int(mu20), int(ele35), int(down))) + float(GetFFWeight(int(mu30), int(ele45), int(down)));
+      weight2l1jstatDown = float(GetPFWeight(int(mu25), int(ele35), int(down))) + float(GetFFWeight(int(mu25), int(ele35), int(down)));
+      weight2l2jstatDown = float(GetPFWeight(int(mu35), int(ele35), int(down))) + float(GetFFWeight(int(mu35), int(ele35), int(down)));
+   
     }
-
+    
     if ( AnalysisLeptons.size() == 3 )  {
       weightPPF   =  float(GetPPFWeight(int(mu20), int(ele35))); 
       weightPFF   =  float(GetPFFWeight(int(mu20), int(ele35))); 
       weightFFF   =  float(GetFFFWeight(int(mu20), int(ele35))); 
-      weight3l     = weightPF + weightFF;
+      weight3l     = weightPPF + weightPFF + weightFFF;
       weight3lUp =  float(GetPPFWeight(int(mu30), int(ele45))) + float(GetPFFWeight(int(mu30), int(ele45))) + float(GetFFFWeight(int(mu30), int(ele45))); 
       weight3lDown =  float(GetPPFWeight(int(mu10), int(ele25))) + float(GetPFFWeight(int(mu10), int(ele25))) + float(GetFFFWeight(int(mu10), int(ele25))); 
+      weight3lstatUp =  float(GetPPFWeight(int(mu20), int(ele35), int(up))) + float(GetPFFWeight(int(mu20), int(ele35), int(up))) + float(GetFFFWeight(int(mu20), int(ele35), int(up))); 
+      weight3lstatDown =  float(GetPPFWeight(int(mu20), int(ele35), int(down))) + float(GetPFFWeight(int(mu20), int(ele35), int(down))) + float(GetFFFWeight(int(mu20), int(ele35), int(down))); 
     }
-  
+     
 
 
     bool isTight1 = 0, isTight2 = 0; 
@@ -609,12 +645,11 @@ tree->SetBranchAddress("std_vector_lepton_chargedHadronIso", &std_vector_lepton_
 // Helped method for weight computation
 //------------------------------------------------------------------------------
 
-
+		     
 //------------------------------------------------------------------------------
 // GetPPFWeight
 //------------------------------------------------------------------------------
-Double_t GetPPFWeight(int mu, int ele)
-{
+Double_t GetPPFWeight(int mu, int ele, int stat) {
   Double_t promptProbability[3];
   Double_t fakeProbability[3];
 
@@ -624,11 +659,22 @@ Double_t GetPPFWeight(int mu, int ele)
     
     Lepton lep = AnalysisLeptons[i];
 
-    Double_t f = 0.0; 
+    Double_t f = 0.0;
+    Double_t fV = 0.0, fE = 0.0;
+    
     if ( lep.flavour == Muon) { 
-      f = GetFactor(MuonFR[mu],  lep.pt, lep.eta, 0.);
+      fV = GetFactor(MuonFR[mu],  lep.pt, lep.eta, 30.);
+      fE = GetFactorError(MuonFR[mu],  lep.pt, lep.eta, 30.);
+      if (stat == up) f = fV+fE; 
+      else if (stat==down) f = fV-fE;
+      else f = fV;
+
     } else if ( lep.flavour == Electron) {
-      f = GetFactor(ElecFR[ele],  lep.pt, lep.eta, 0.0);
+      fV = GetFactor(ElecFR[ele],  lep.pt, lep.eta, 30.0);
+      fE = GetFactorError(ElecFR[ele],  lep.pt, lep.eta, 30.);
+      if (stat == up) f = fV+fE; 
+      else if (stat==down) f = fV-fE;
+      else f = fV; 
     }
 
     Double_t p = lep.pr;
@@ -665,7 +711,7 @@ Double_t GetPPFWeight(int mu, int ele)
 //------------------------------------------------------------------------------
 // GetPFFWeight
 //------------------------------------------------------------------------------
-Double_t GetPFFWeight(int mu, int ele)
+		     Double_t GetPFFWeight(int mu, int ele, int stat)
 {
   Double_t promptProbability[3];
   Double_t fakeProbability[3];
@@ -676,11 +722,22 @@ Double_t GetPFFWeight(int mu, int ele)
 
     Lepton lep = AnalysisLeptons[i];
 
-    Double_t f = 0.0; 
+    Double_t f = 0.0;
+    Double_t fV = 0.0, fE = 0.0;
+    
     if ( lep.flavour == Muon) { 
-      f = GetFactor(MuonFR[mu],  lep.pt, lep.eta, 0.);
+      fV = GetFactor(MuonFR[mu],  lep.pt, lep.eta, 30.);
+      fE = GetFactorError(MuonFR[mu],  lep.pt, lep.eta, 30.);
+      if (stat == up) f = fV+fE; 
+      else if (stat==down) f = fV-fE;
+      else f = fV;
+
     } else if ( lep.flavour == Electron) {
-      f = GetFactor(ElecFR[ele],  lep.pt, lep.eta, 0.0);
+      fV = GetFactor(ElecFR[ele],  lep.pt, lep.eta, 30.0);
+      fE = GetFactorError(ElecFR[ele],  lep.pt, lep.eta, 30.);
+      if (stat == up) f = fV+fE; 
+      else if (stat==down) f = fV-fE;
+      else f = fV; 
     }
 
     Double_t p = lep.pr;
@@ -716,7 +773,7 @@ Double_t GetPFFWeight(int mu, int ele)
 //------------------------------------------------------------------------------
 // GetFFFWeight
 //------------------------------------------------------------------------------
-Double_t GetFFFWeight(int mu, int ele)
+		     Double_t GetFFFWeight(int mu, int ele, int stat)
 {
   Double_t fakeProbability[3];
   int nTight= 0;
@@ -724,12 +781,23 @@ Double_t GetFFFWeight(int mu, int ele)
   for (UInt_t i=0; i<3; i++) {
     
     Lepton lep = AnalysisLeptons[i];
-
-    Double_t f = 0.0; 
+ 
+    Double_t f = 0.0;
+    Double_t fV = 0.0, fE = 0.0;
+    
     if ( lep.flavour == Muon) { 
-      f = GetFactor(MuonFR[mu],  lep.pt, lep.eta, 0.);
+      fV = GetFactor(MuonFR[mu],  lep.pt, lep.eta, 30.);
+      fE = GetFactorError(MuonFR[mu],  lep.pt, lep.eta, 30.);
+      if (stat == up) f = fV+fE; 
+      else if (stat==down) f = fV-fE;
+      else f = fV;
+
     } else if ( lep.flavour == Electron) {
-      f = GetFactor(ElecFR[ele],  lep.pt, lep.eta, 0.0);
+      fV = GetFactor(ElecFR[ele],  lep.pt, lep.eta, 30.0);
+      fE = GetFactorError(ElecFR[ele],  lep.pt, lep.eta, 30.);
+      if (stat == up) f = fV+fE; 
+      else if (stat==down) f = fV-fE;
+      else f = fV; 
     }
 
     Double_t p = lep.pr;
@@ -758,7 +826,7 @@ Double_t GetFFFWeight(int mu, int ele)
 //------------------------------------------------------------------------------
 // GetPFWeight
 //------------------------------------------------------------------------------
-Double_t GetPFWeight(int mu, int ele)
+Double_t GetPFWeight(int mu, int ele, int stat)
 {
   Double_t promptProbability[2];
   Double_t fakeProbability[2];
@@ -769,11 +837,22 @@ Double_t GetPFWeight(int mu, int ele)
     
     Lepton lep = AnalysisLeptons[i];
 
-    Double_t f = 0.0; 
+    Double_t f = 0.0;
+    Double_t fV = 0.0, fE = 0.0;
+ 
     if ( lep.flavour == Muon) { 
-      f = GetFactor(MuonFR[mu],  lep.pt, lep.eta, 30.);
+      fV = GetFactor(MuonFR[mu],  lep.pt, lep.eta, 30.);
+      fE = GetFactorError(MuonFR[mu],  lep.pt, lep.eta, 30.);
+      if (stat == up) f = fV+fE; 
+      else if (stat==down) f = fV-fE;
+      else f = fV;
+
     } else if ( lep.flavour == Electron) {
-      f = GetFactor(ElecFR[ele],  lep.pt, lep.eta, 30.0);
+      fV = GetFactor(ElecFR[ele],  lep.pt, lep.eta, 30.0);
+      fE = GetFactorError(ElecFR[ele],  lep.pt, lep.eta, 30.);
+      if (stat == up) f = fV+fE; 
+      else if (stat==down) f = fV-fE;
+      else f = fV; 
     }
 
     Double_t p = lep.pr;
@@ -810,7 +889,7 @@ Double_t GetPFWeight(int mu, int ele)
 //------------------------------------------------------------------------------
 // GetFFWeight
 //------------------------------------------------------------------------------
-Double_t GetFFWeight(int mu, int ele)
+Double_t GetFFWeight(int mu, int ele, int stat)
 {
   Double_t fakeProbability[2];
 
@@ -820,11 +899,22 @@ Double_t GetFFWeight(int mu, int ele)
     
     Lepton lep = AnalysisLeptons[i];
 
-    Double_t f = 0.0; 
+    Double_t f = 0.0;
+    Double_t fV = 0.0, fE = 0.0;
+    
     if ( lep.flavour == Muon) { 
-      f = GetFactor(MuonFR[mu],  lep.pt, lep.eta, 0.);
+      fV = GetFactor(MuonFR[mu],  lep.pt, lep.eta, 30.);
+      fE = GetFactorError(MuonFR[mu],  lep.pt, lep.eta, 30.);
+      if (stat == up) f = fV+fE; 
+      else if (stat==down) f = fV-fE;
+      else f = fV;
+
     } else if ( lep.flavour == Electron) {
-      f = GetFactor(ElecFR[ele],  lep.pt, lep.eta, 0.0);
+      fV = GetFactor(ElecFR[ele],  lep.pt, lep.eta, 30.0);
+      fE = GetFactorError(ElecFR[ele],  lep.pt, lep.eta, 30.);
+      if (stat == up) f = fV+fE; 
+      else if (stat==down) f = fV-fE;
+      else f = fV; 
     }
 
     Double_t p = lep.pr;
@@ -1070,7 +1160,7 @@ bool IsLooseIsolatedLepton(int k)
 //------------------------------------------------------------------------------
 // GetFactor
 //------------------------------------------------------------------------------
-Float_t GetFactor(TH2F*   h2,
+Double_t GetFactor(TH2F*   h2,
 		  Float_t leptonPt,
 		  Float_t leptonEta,
 		  Float_t leptonPtMax)
@@ -1086,3 +1176,21 @@ Float_t GetFactor(TH2F*   h2,
   return factor;
 }
 
+//------------------------------------------------------------------------------
+// GetFactor
+//------------------------------------------------------------------------------
+Double_t GetFactorError(TH2F*   h2,
+		       Float_t leptonPt,
+		       Float_t leptonEta,
+		       Float_t leptonPtMax)
+{
+  Float_t aeta = fabs(leptonEta);
+
+  Int_t nbins = h2->GetNbinsX();
+
+  Float_t ptMax = (leptonPtMax > 0) ? leptonPtMax : h2->GetXaxis()->GetBinCenter(nbins);
+
+  Float_t factor = h2->GetBinError(h2->FindBin(TMath::Min(leptonPt, ptMax), aeta));
+
+  return factor;
+}
