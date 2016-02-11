@@ -83,9 +83,10 @@ TString muonJetPt[nMuJetET] = {"10","15", "20", "25", "30", "35", "45"};
 enum { mu10, mu15, mu20, mu25, mu30, mu35, mu45};
 
 TString elecJetPt[nEleJetET] = {"25", "35", "45"};
+
 enum {ele25, ele35, ele45}; 
 
-enum {up, down};
+enum {ElUp, ElDown, MuUp, MuDown};
 
 enum {Muon, Electron, Unknown};
 
@@ -258,18 +259,25 @@ tree->SetBranchAddress("std_vector_lepton_chargedHadronIso", &std_vector_lepton_
  Float_t weightFF, weightPF, weightUp, weightDown; 
  Float_t weightFFF, weightPFF, weightPPF; 
 
- Float_t weight3l, weight3lUp, weight3lDown, weight3lstatUp, weight3lstatDown; 
- Float_t weight2l0j, weight2l1j, weight2l2j, weight2l0jUp, weight2l1jUp, weight2l2jUp, weight2l0jDown, weight2l1jDown, weight2l2jDown, weight2l0jstatUp, weight2l1jstatUp, weight2l2jstatUp, weight2l0jstatDown, weight2l1jstatDown, weight2l2jstatDown;
+ Float_t weight3lForWW ,weight3l, weight3lElUp, weight3lElDown, weight3lstatElUp, weight3lstatElDown, weight3lMuUp, weight3lMuDown, weight3lstatMuUp, weight3lstatMuDown; 
+ Float_t weight2l0j, weight2l1j, weight2l2j, weight2l0jElUp, weight2l1jElUp, weight2l2jElUp, weight2l0jElDown, weight2l1jElDown, weight2l2jElDown, weight2l0jstatElUp, weight2l1jstatElUp, weight2l2jstatElUp, weight2l0jstatElDown, weight2l1jstatElDown, weight2l2jstatElDown,  weight2l0jMuUp, weight2l1jMuUp, weight2l2jMuUp, weight2l0jMuDown, weight2l1jMuDown, weight2l2jMuDown, weight2l0jstatMuUp, weight2l1jstatMuUp, weight2l2jstatMuUp, weight2l0jstatMuDown, weight2l1jstatMuDown, weight2l2jstatMuDown;
 
+ //Float_t weight2lMu, weight2lEle;
 
  tree->SetBranchStatus("*", 1);
  // in case already exist
  tree->SetBranchStatus("fakeW3l",               0);
- tree->SetBranchStatus("fakeW3lUp",             0);
- tree->SetBranchStatus("fakeW3lDown",           0);
- tree->SetBranchStatus("fakeW3lstatUp",         0);
- tree->SetBranchStatus("fakeW3lstatDown",       0);
+ tree->SetBranchStatus("fakeW3lElUp",             0);
+ tree->SetBranchStatus("fakeW3lElDown",           0);
+ tree->SetBranchStatus("fakeW3lstatElUp",         0);
+ tree->SetBranchStatus("fakeW3lstatElDown",       0);
+ tree->SetBranchStatus("fakeW3lMuUp",             0);
+ tree->SetBranchStatus("fakeW3lMuDown",           0);
+ tree->SetBranchStatus("fakeW3lstatMuUp",         0);
+ tree->SetBranchStatus("fakeW3lstatMuDown",       0);
  tree->SetBranchStatus("fakeW2l0j",             0);
+ //tree->SetBranchStatus("fakeW2lMu",             0);
+ //tree->SetBranchStatus("fakeW2lEle",            0);
  tree->SetBranchStatus("fakeW2l1j",             0);
  tree->SetBranchStatus("fakeW2l2j",             0);
  tree->SetBranchStatus("fakeW2l0jstatUp",       0);
@@ -313,29 +321,49 @@ tree->SetBranchAddress("std_vector_lepton_chargedHadronIso", &std_vector_lepton_
    // make a copy of the input tree
    newtree = tree->CloneTree(0);
    newtree->SetAutoSave(10000000);  // autosave when 10 Mbyte written
-
+   newtree->Branch("fake3lForWW", &weight3lForWW, "fake3lForWW/F");
    newtree->Branch("fakeW3l",            &weight3l,                "fakeW3l/F");
    //newtree->Branch("fakeW2l",            &weight2l,                "fakeW2l/F");
-   newtree->Branch("fakeW3lUp",          &weight3lUp,              "fakeW3lUp/F");
-   newtree->Branch("fakeW3lDown",        &weight3lDown,            "fakeW3lDown/F");
-   newtree->Branch("fakeW3lstatUp",      &weight3lstatUp,          "fakeW3lstatUp/F");
-   newtree->Branch("fakeW3lstatDown",    &weight3lstatDown,        "fakeW3lstatDown/F");
+   newtree->Branch("fakeW3lElUp",          &weight3lElUp,              "fakeW3lElUp/F");
+   newtree->Branch("fakeW3lElDown",        &weight3lElDown,            "fakeW3lElDown/F");
+   newtree->Branch("fakeW3lstatElUp",      &weight3lstatElUp,          "fakeW3lstatElUp/F");
+   newtree->Branch("fakeW3lstatElDown",    &weight3lstatElDown,        "fakeW3lstatElDown/F");
+   newtree->Branch("fakeW3lMuUp",          &weight3lMuUp,              "fakeW3lMuUp/F");
+   newtree->Branch("fakeW3lMuDown",        &weight3lMuDown,            "fakeW3lMuDown/F");
+   newtree->Branch("fakeW3lstatMuUp",      &weight3lstatMuUp,          "fakeW3lstatMuUp/F");
+   newtree->Branch("fakeW3lstatMuDown",    &weight3lstatMuDown,        "fakeW3lstatMuDown/F");
    newtree->Branch("fakeW2l0j",          &weight2l0j,              "fakeW2l0j/F");
    newtree->Branch("fakeW2l1j",          &weight2l1j,              "fakeW2l1j/F");
    newtree->Branch("fakeW2l2j",          &weight2l2j,              "fakeW2l2j/F");
-   newtree->Branch("fakeW2l0jUp",        &weight2l0jUp,            "fakeW2l0jUp/F");
-   newtree->Branch("fakeW2l1jUp",        &weight2l1jUp,            "fakeW2l1jUp/F");
-   newtree->Branch("fakeW2l2jUp",        &weight2l2jUp,            "fakeW2l2jUp/F");
-   newtree->Branch("fakeW2l0jDown",      &weight2l0jDown,          "fakeW2l0jDown/F");
-   newtree->Branch("fakeW2l1jDown",      &weight2l1jDown,          "fakeW2l1jDown/F");
-   newtree->Branch("fakeW2l2jDown",      &weight2l2jDown,          "fakeW2l2jDown/F");
-   newtree->Branch("fakeW2l0jstatUp",    &weight2l0jstatUp,        "fakeW2l0jstatUp/F");
-   newtree->Branch("fakeW2l1jstatUp",    &weight2l1jstatUp,        "fakeW2l1jstatUp/F");
-   newtree->Branch("fakeW2l2jstatUp",    &weight2l2jstatUp,        "fakeW2l2jstatUp/F");
-   newtree->Branch("fakeW2l0jstatDown",  &weight2l0jstatDown,      "fakeW2l0jstatDown/F");
-   newtree->Branch("fakeW2l1jstatDown",  &weight2l1jstatDown,      "fakeW2l1jstatDown/F");
-   newtree->Branch("fakeW2l2jstatDown",  &weight2l2jstatDown,      "fakeW2l2jstatDown/F");
+   //newtree->Branch("fakeW2lEle",         &weight2lEle,              "fakeW2lEle/F");
+   //newtree->Branch("fakeW2lMu",          &weight2lMu,               "fakeW2lMu/F");
+   newtree->Branch("fakeW2l0jElUp",        &weight2l0jElUp,            "fakeW2l0jElUp/F");
+   newtree->Branch("fakeW2l1jElUp",        &weight2l1jElUp,            "fakeW2l1jElUp/F");
+   newtree->Branch("fakeW2l2jElUp",        &weight2l2jElUp,            "fakeW2l2jElUp/F");
+   newtree->Branch("fakeW2l0jElDown",      &weight2l0jElDown,          "fakeW2l0jElDown/F");
+   newtree->Branch("fakeW2l1jElDown",      &weight2l1jElDown,          "fakeW2l1jElDown/F");
+   newtree->Branch("fakeW2l2jElDown",      &weight2l2jElDown,          "fakeW2l2jElDown/F");
+   newtree->Branch("fakeW2l0jstatElUp",    &weight2l0jstatElUp,        "fakeW2l0jstatElUp/F");
+   newtree->Branch("fakeW2l1jstatElUp",    &weight2l1jstatElUp,        "fakeW2l1jstatElUp/F");
+   newtree->Branch("fakeW2l2jstatElUp",    &weight2l2jstatElUp,        "fakeW2l2jstatElUp/F");
+   newtree->Branch("fakeW2l0jstatElDown",  &weight2l0jstatElDown,      "fakeW2l0jstatElDown/F");
+   newtree->Branch("fakeW2l1jstatElDown",  &weight2l1jstatElDown,      "fakeW2l1jstatElDown/F");
+   newtree->Branch("fakeW2l2jstatElDown",  &weight2l2jstatElDown,      "fakeW2l2jstatElDown/F");
 
+
+
+   newtree->Branch("fakeW2l0jMuUp",        &weight2l0jMuUp,            "fakeW2l0jMuUp/F");
+   newtree->Branch("fakeW2l1jMuUp",        &weight2l1jMuUp,            "fakeW2l1jMuUp/F");
+   newtree->Branch("fakeW2l2jMuUp",        &weight2l2jMuUp,            "fakeW2l2jMuUp/F");
+   newtree->Branch("fakeW2l0jMuDown",      &weight2l0jMuDown,          "fakeW2l0jMuDown/F");
+   newtree->Branch("fakeW2l1jMuDown",      &weight2l1jMuDown,          "fakeW2l1jMuDown/F");
+   newtree->Branch("fakeW2l2jMuDown",      &weight2l2jMuDown,          "fakeW2l2jMuDown/F");
+   newtree->Branch("fakeW2l0jstatMuUp",    &weight2l0jstatMuUp,        "fakeW2l0jstatMuUp/F");
+   newtree->Branch("fakeW2l1jstatMuUp",    &weight2l1jstatMuUp,        "fakeW2l1jstatMuUp/F");
+   newtree->Branch("fakeW2l2jstatMuUp",    &weight2l2jstatMuUp,        "fakeW2l2jstatMuUp/F");
+   newtree->Branch("fakeW2l0jstatMuDown",  &weight2l0jstatMuDown,      "fakeW2l0jstatMuDown/F");
+   newtree->Branch("fakeW2l1jstatMuDown",  &weight2l1jstatMuDown,      "fakeW2l1jstatMuDown/F");
+   newtree->Branch("fakeW2l2jstatMuDown",  &weight2l2jstatMuDown,      "fakeW2l2jstatMuDown/F");
 
    //newtree->Branch("fakeWJet",         &weightPF,              "fakeWJet/F");
    //newtree->Branch("fakeQCD",          &weightFF,              "fakeQCD/F");
@@ -384,19 +412,25 @@ tree->SetBranchAddress("std_vector_lepton_chargedHadronIso", &std_vector_lepton_
     tree->GetEntry(jentry);
   
     weight2l0j = 0.0; weight2l1j = 0.0; weight2l2j = 0.0;
-    weight2l0jUp = 0.0; weight2l1jUp = 0.0; weight2l2jUp = 0.0;
-    weight2l0jDown = 0.0; weight2l1jDown = 0.0; weight2l2jDown = 0.0;
-    weight2l0jstatUp = 0.0; weight2l1jstatUp = 0.0; weight2l2jstatUp = 0.0;
-    weight2l0jstatDown = 0.0; weight2l1jstatDown = 0.0; weight2l2jstatDown = 0.0;
+    weight2l0jElUp = 0.0; weight2l1jElUp = 0.0; weight2l2jElUp = 0.0;
+    weight2l0jElDown = 0.0; weight2l1jElDown = 0.0; weight2l2jElDown = 0.0;
+    weight2l0jstatElUp = 0.0; weight2l1jstatElUp = 0.0; weight2l2jstatElUp = 0.0;
+    weight2l0jstatElDown = 0.0; weight2l1jstatElDown = 0.0; weight2l2jstatElDown = 0.0;
+    weight2l0jMuUp = 0.0; weight2l1jMuUp = 0.0; weight2l2jMuUp = 0.0;
+    weight2l0jMuDown = 0.0; weight2l1jMuDown = 0.0; weight2l2jMuDown = 0.0;
+    weight2l0jstatMuUp = 0.0; weight2l1jstatMuUp = 0.0; weight2l2jstatMuUp = 0.0;
+    weight2l0jstatMuDown = 0.0; weight2l1jstatMuDown = 0.0; weight2l2jstatMuDown = 0.0;
     weightPF = 0.0; 
     weightFF = 0.0; 
 
-    weight3l = 0.0; weight3lUp = 0.0; weight3lDown = 0.0;
-    weight3lstatUp = 0.0; weight3lstatDown = 0.0;
+    
+    weight3l = 0.0; weight3lElUp = 0.0; weight3lElDown = 0.0; weight3lMuUp = 0.0; weight3lMuDown = 0.0;
+    weight3lstatElUp = 0.0; weight3lstatElDown = 0.0;  weight3lstatMuUp = 0.0; weight3lstatMuDown = 0.0;
     weightPPF = 0.0; 
     weightPFF = 0.0; 
     weightFFF = 0.0; 
 
+    //weight2lMu = 0.0;  weight2lEle = 0.0;
 
     float sign = 1.; 
     //if ( input.Contains("Zg") ) sign = -1.; // flip sign to subtract non-fake contamination from Vg/Vg*
@@ -414,38 +448,33 @@ tree->SetBranchAddress("std_vector_lepton_chargedHadronIso", &std_vector_lepton_
     
     for (int i=0; i<vsize; i++) {
 
-      if ( !IsLooseLepton(i) ) continue; 
-      if ( !IsLooseIsolatedLepton(i) ) continue; 
- 
-      //if (fabs(std_vector_lepton_closejet_PartonFlavour->at(i)) == 5) continue;
+      float pt  = std_vector_lepton_pt ->at(i);
+      float eta = std_vector_lepton_eta->at(i);
+      float phi = std_vector_lepton_phi->at(i);
+      float id  = std_vector_lepton_flavour ->at(i);
+
+      Lepton lep;
       
-     float pt  = std_vector_lepton_pt ->at(i);
-     float eta = std_vector_lepton_eta->at(i);
-     float phi = std_vector_lepton_phi->at(i);
-     float id  = std_vector_lepton_flavour ->at(i);
-
-     Lepton lep;
+      lep.index  = i;
+      lep.charge = id;
+      lep.pt = pt; 
+      lep.eta = eta;
+      
+      if (fabs(id) == 11) { 
+	lep.flavour = Electron; 
+      } else if (fabs(id) == 13) { 
+	lep.flavour = Muon; 
+      }
     
-     lep.index  = i;
-     lep.charge = id;
-     lep.pt = pt; 
-     lep.eta = eta;
+      if (pt <=10 ) continue;
+      if (fabs(id) == 11 && fabs(eta) >= 2.5 ) continue;  
+      if (fabs(id) == 13 && fabs(eta) >= 2.4 ) continue;  
 
-     if (fabs(id) == 11) { 
-       lep.flavour = Electron; 
-     } else if (fabs(id) == 13) { 
-       lep.flavour = Muon; 
-     }
-    
-     if (pt <=10 ) continue;
-     if (fabs(id) == 11 && fabs(eta) >= 2.5 ) continue;  
-     if (fabs(id) == 13 && fabs(eta) >= 2.4 ) continue;  
-
-     if ( IsTightLepton(i) &&  IsIsolatedLepton(i) ) { 
-       lep.type = Tight;
-     } else {
-       lep.type =  noTight;
-     }
+      if ( IsTightLepton(i) &&  IsIsolatedLepton(i) ) { 
+	lep.type = Tight;
+      } else {
+	lep.type =  noTight;
+      }
 
            
      //------------------------------------------------------------------------
@@ -478,39 +507,65 @@ tree->SetBranchAddress("std_vector_lepton_chargedHadronIso", &std_vector_lepton_
 
     
     if ( AnalysisLeptons.size() == 2 )  {
+
       weightPF    = float(GetPFWeight(int(mu20), int(ele35))); 
       weightFF    = float(GetFFWeight(int(mu20), int(ele35))); 
+      
       weight2l0j = weightPF + weightFF;
       weight2l1j = float(GetPFWeight(int(mu25), int(ele35))) + float(GetFFWeight(int(mu25), int(ele35)));
       weight2l2j = float(GetPFWeight(int(mu35), int(ele35))) + float(GetFFWeight(int(mu35), int(ele35)));
-      weight2l0jUp = float(GetPFWeight(int(mu30), int(ele45))) + float(GetFFWeight(int(mu30), int(ele45)));
-      weight2l1jUp = float(GetPFWeight(int(mu35), int(ele45))) + float(GetFFWeight(int(mu35), int(ele45)));
-      weight2l2jUp = float(GetPFWeight(int(mu45), int(ele45))) + float(GetFFWeight(int(mu45), int(ele45)));
-      weight2l0jDown = float(GetPFWeight(int(mu10), int(ele25))) + float(GetFFWeight(int(mu10), int(ele25)));
-      weight2l1jDown = float(GetPFWeight(int(mu15), int(ele25))) + float(GetFFWeight(int(mu15), int(ele25)));
-      weight2l2jDown = float(GetPFWeight(int(mu25), int(ele25))) + float(GetFFWeight(int(mu25), int(ele25)));
-      weight2l0jstatUp = float(GetPFWeight(int(mu20), int(ele35), int(up))) + float(GetFFWeight(int(mu30), int(ele45), int(up)));
-      weight2l1jstatUp = float(GetPFWeight(int(mu25), int(ele35), int(up))) + float(GetFFWeight(int(mu25), int(ele35), int(up)));
-      weight2l2jstatUp = float(GetPFWeight(int(mu35), int(ele35), int(up))) + float(GetFFWeight(int(mu35), int(ele35), int(up)));
-      weight2l0jstatDown = float(GetPFWeight(int(mu20), int(ele35), int(down))) + float(GetFFWeight(int(mu30), int(ele45), int(down)));
-      weight2l1jstatDown = float(GetPFWeight(int(mu25), int(ele35), int(down))) + float(GetFFWeight(int(mu25), int(ele35), int(down)));
-      weight2l2jstatDown = float(GetPFWeight(int(mu35), int(ele35), int(down))) + float(GetFFWeight(int(mu35), int(ele35), int(down)));
-   
+      weight2l0jElUp = float(GetPFWeight(int(mu20), int(ele45))) + float(GetFFWeight(int(mu20), int(ele45)));
+      weight2l1jElUp = float(GetPFWeight(int(mu25), int(ele45))) + float(GetFFWeight(int(mu25), int(ele45)));
+      weight2l2jElUp = float(GetPFWeight(int(mu35), int(ele45))) + float(GetFFWeight(int(mu35), int(ele45)));
+      weight2l0jElDown = float(GetPFWeight(int(mu20), int(ele25))) + float(GetFFWeight(int(mu20), int(ele25)));
+      weight2l1jElDown = float(GetPFWeight(int(mu25), int(ele25))) + float(GetFFWeight(int(mu25), int(ele25)));
+      weight2l2jElDown = float(GetPFWeight(int(mu35), int(ele25))) + float(GetFFWeight(int(mu35), int(ele25)));
+      weight2l0jstatElUp = float(GetPFWeight(int(mu20), int(ele35), int(ElUp))) + float(GetFFWeight(int(mu20), int(ele35), int(ElUp)));
+      weight2l1jstatElUp = float(GetPFWeight(int(mu25), int(ele35), int(ElUp))) + float(GetFFWeight(int(mu25), int(ele35), int(ElUp)));
+      weight2l2jstatElUp = float(GetPFWeight(int(mu35), int(ele35), int(ElUp))) + float(GetFFWeight(int(mu35), int(ele35), int(ElUp)));
+      weight2l0jstatElDown = float(GetPFWeight(int(mu20), int(ele35), int(ElDown))) + float(GetFFWeight(int(mu20), int(ele35), int(ElDown)));
+      weight2l1jstatElDown = float(GetPFWeight(int(mu25), int(ele35), int(ElDown))) + float(GetFFWeight(int(mu25), int(ele35), int(ElDown)));
+      weight2l2jstatElDown = float(GetPFWeight(int(mu35), int(ele35), int(ElDown))) + float(GetFFWeight(int(mu35), int(ele35), int(ElDown)));
+
+      weight2l0jMuUp = float(GetPFWeight(int(mu30), int(ele35))) + float(GetFFWeight(int(mu30), int(ele35)));
+      weight2l1jMuUp = float(GetPFWeight(int(mu35), int(ele35))) + float(GetFFWeight(int(mu35), int(ele35)));
+      weight2l2jMuUp = float(GetPFWeight(int(mu45), int(ele35))) + float(GetFFWeight(int(mu45), int(ele35)));
+      weight2l0jMuDown = float(GetPFWeight(int(mu10), int(ele35))) + float(GetFFWeight(int(mu10), int(ele35)));
+      weight2l1jMuDown = float(GetPFWeight(int(mu15), int(ele35))) + float(GetFFWeight(int(mu15), int(ele35)));
+      weight2l2jMuDown = float(GetPFWeight(int(mu25), int(ele35))) + float(GetFFWeight(int(mu25), int(ele35)));
+      weight2l0jstatMuUp = float(GetPFWeight(int(mu20), int(ele35), int(MuUp))) + float(GetFFWeight(int(mu20), int(ele35), int(MuUp)));
+      weight2l1jstatMuUp = float(GetPFWeight(int(mu25), int(ele35), int(MuUp))) + float(GetFFWeight(int(mu25), int(ele35), int(MuUp)));
+      weight2l2jstatMuUp = float(GetPFWeight(int(mu35), int(ele35), int(MuUp))) + float(GetFFWeight(int(mu35), int(ele35), int(MuUp)));
+      weight2l0jstatMuDown = float(GetPFWeight(int(mu20), int(ele35), int(MuDown))) + float(GetFFWeight(int(mu20), int(ele35), int(MuDown)));
+      weight2l1jstatMuDown = float(GetPFWeight(int(mu25), int(ele35), int(MuDown))) + float(GetFFWeight(int(mu25), int(ele35), int(MuDown)));
+      weight2l2jstatMuDown = float(GetPFWeight(int(mu35), int(ele35), int(MuDown))) + float(GetFFWeight(int(mu35), int(ele35), int(MuDown)));
+
+
     }
+    
     
     if ( AnalysisLeptons.size() == 3 )  {
       weightPPF   =  float(GetPPFWeight(int(mu20), int(ele35))); 
       weightPFF   =  float(GetPFFWeight(int(mu20), int(ele35))); 
       weightFFF   =  float(GetFFFWeight(int(mu20), int(ele35))); 
       weight3l     = weightPPF + weightPFF + weightFFF;
-      weight3lUp =  float(GetPPFWeight(int(mu30), int(ele45))) + float(GetPFFWeight(int(mu30), int(ele45))) + float(GetFFFWeight(int(mu30), int(ele45))); 
-      weight3lDown =  float(GetPPFWeight(int(mu10), int(ele25))) + float(GetPFFWeight(int(mu10), int(ele25))) + float(GetFFFWeight(int(mu10), int(ele25))); 
-      weight3lstatUp =  float(GetPPFWeight(int(mu20), int(ele35), int(up))) + float(GetPFFWeight(int(mu20), int(ele35), int(up))) + float(GetFFFWeight(int(mu20), int(ele35), int(up))); 
-      weight3lstatDown =  float(GetPPFWeight(int(mu20), int(ele35), int(down))) + float(GetPFFWeight(int(mu20), int(ele35), int(down))) + float(GetFFFWeight(int(mu20), int(ele35), int(down))); 
+      
+      weight3lElUp =  float(GetPPFWeight(int(mu20), int(ele45))) + float(GetPFFWeight(int(mu20), int(ele45))) + float(GetFFFWeight(int(mu20), int(ele45))); 
+      weight3lElDown =  float(GetPPFWeight(int(mu20), int(ele25))) + float(GetPFFWeight(int(mu20), int(ele25))) + float(GetFFFWeight(int(mu20), int(ele25))); 
+
+      weight3lMuUp =  float(GetPPFWeight(int(mu30), int(ele35))) + float(GetPFFWeight(int(mu30), int(ele35))) + float(GetFFFWeight(int(mu30), int(ele35))); 
+      weight3lMuDown =  float(GetPPFWeight(int(mu10), int(ele35))) + float(GetPFFWeight(int(mu10), int(ele35))) + float(GetFFFWeight(int(mu10), int(ele35))); 
+
+      weight3lstatElUp =  float(GetPPFWeight(int(mu20), int(ele35), int(ElUp))) + float(GetPFFWeight(int(mu20), int(ele35), int(ElUp))) + float(GetFFFWeight(int(mu20), int(ele35), int(ElUp))); 
+      weight3lstatElDown =  float(GetPPFWeight(int(mu20), int(ele35), int(ElDown))) + float(GetPFFWeight(int(mu20), int(ele35), int(ElDown))) + float(GetFFFWeight(int(mu20), int(ele35), int(ElDown))); 
+
+     weight3lstatMuUp =  float(GetPPFWeight(int(mu20), int(ele35), int(MuUp))) + float(GetPFFWeight(int(mu20), int(ele35), int(MuUp))) + float(GetFFFWeight(int(mu20), int(ele35), int(MuUp))); 
+      weight3lstatMuDown =  float(GetPPFWeight(int(mu20), int(ele35), int(MuDown))) + float(GetPFFWeight(int(mu20), int(ele35), int(MuDown))) + float(GetFFFWeight(int(mu20), int(ele35), int(MuDown)));
+
     }
-     
-
-
+    
+    
+    
     bool isTight1 = 0, isTight2 = 0; 
     if ( AnalysisLeptons[0].type == Tight)  {
       isTight1 = 1;
@@ -594,9 +649,9 @@ tree->SetBranchAddress("std_vector_lepton_chargedHadronIso", &std_vector_lepton_
     countEntriesByHand++;
 
     //if(addWeight) newtree->Fill(); 
-    if ( AnalysisLeptons.size() >= 2 )  {
+    //    if ( AnalysisLeptons.size() >= 2 )  {
       if(addWeight && trigger>0) newtree->Fill(); //in the momento we will have trigger.
-    }
+      //}
   } // end loop on entries
 
 
@@ -665,15 +720,15 @@ Double_t GetPPFWeight(int mu, int ele, int stat) {
     if ( lep.flavour == Muon) { 
       fV = GetFactor(MuonFR[mu],  lep.pt, lep.eta, 30.);
       fE = GetFactorError(MuonFR[mu],  lep.pt, lep.eta, 30.);
-      if (stat == up) f = fV+fE; 
-      else if (stat==down) f = fV-fE;
+      if (stat == MuUp) f = fV+fE; 
+      else if (stat == MuDown) f = fV-fE;
       else f = fV;
 
     } else if ( lep.flavour == Electron) {
       fV = GetFactor(ElecFR[ele],  lep.pt, lep.eta, 30.0);
       fE = GetFactorError(ElecFR[ele],  lep.pt, lep.eta, 30.);
-      if (stat == up) f = fV+fE; 
-      else if (stat==down) f = fV-fE;
+      if (stat == ElUp) f = fV+fE; 
+      else if (stat == ElDown) f = fV-fE;
       else f = fV; 
     }
 
@@ -701,7 +756,7 @@ Double_t GetPPFWeight(int mu, int ele, int stat) {
 
   Double_t result = PPF + PFP + FPP;
 
-  if (nTight == 1 || nTight == 3) result *= -1.;
+    if (nTight == 1 || nTight == 3) result *= -1.;
 
   return result;
 }
@@ -728,15 +783,15 @@ Double_t GetPPFWeight(int mu, int ele, int stat) {
     if ( lep.flavour == Muon) { 
       fV = GetFactor(MuonFR[mu],  lep.pt, lep.eta, 30.);
       fE = GetFactorError(MuonFR[mu],  lep.pt, lep.eta, 30.);
-      if (stat == up) f = fV+fE; 
-      else if (stat==down) f = fV-fE;
+      if (stat == MuUp) f = fV+fE; 
+      else if (stat == MuDown) f = fV-fE;
       else f = fV;
 
     } else if ( lep.flavour == Electron) {
       fV = GetFactor(ElecFR[ele],  lep.pt, lep.eta, 30.0);
       fE = GetFactorError(ElecFR[ele],  lep.pt, lep.eta, 30.);
-      if (stat == up) f = fV+fE; 
-      else if (stat==down) f = fV-fE;
+      if (stat == ElUp) f = fV+fE; 
+      else if (stat == ElDown) f = fV-fE;
       else f = fV; 
     }
 
@@ -788,15 +843,15 @@ Double_t GetPPFWeight(int mu, int ele, int stat) {
     if ( lep.flavour == Muon) { 
       fV = GetFactor(MuonFR[mu],  lep.pt, lep.eta, 30.);
       fE = GetFactorError(MuonFR[mu],  lep.pt, lep.eta, 30.);
-      if (stat == up) f = fV+fE; 
-      else if (stat==down) f = fV-fE;
+      if (stat == MuUp) f = fV+fE; 
+      else if (stat == MuDown) f = fV-fE;
       else f = fV;
 
     } else if ( lep.flavour == Electron) {
       fV = GetFactor(ElecFR[ele],  lep.pt, lep.eta, 30.0);
       fE = GetFactorError(ElecFR[ele],  lep.pt, lep.eta, 30.);
-      if (stat == up) f = fV+fE; 
-      else if (stat==down) f = fV-fE;
+      if (stat == ElUp) f = fV+fE; 
+      else if (stat== ElDown) f = fV-fE;
       else f = fV; 
     }
 
@@ -843,15 +898,15 @@ Double_t GetPFWeight(int mu, int ele, int stat)
     if ( lep.flavour == Muon) { 
       fV = GetFactor(MuonFR[mu],  lep.pt, lep.eta, 30.);
       fE = GetFactorError(MuonFR[mu],  lep.pt, lep.eta, 30.);
-      if (stat == up) f = fV+fE; 
-      else if (stat==down) f = fV-fE;
+      if (stat == MuUp) f = fV+fE; 
+      else if (stat == MuDown) f = fV-fE;
       else f = fV;
 
     } else if ( lep.flavour == Electron) {
       fV = GetFactor(ElecFR[ele],  lep.pt, lep.eta, 30.0);
       fE = GetFactorError(ElecFR[ele],  lep.pt, lep.eta, 30.);
-      if (stat == up) f = fV+fE; 
-      else if (stat==down) f = fV-fE;
+      if (stat == ElUp) f = fV+fE; 
+      else if (stat == ElDown) f = fV-fE;
       else f = fV; 
     }
 
@@ -905,15 +960,15 @@ Double_t GetFFWeight(int mu, int ele, int stat)
     if ( lep.flavour == Muon) { 
       fV = GetFactor(MuonFR[mu],  lep.pt, lep.eta, 30.);
       fE = GetFactorError(MuonFR[mu],  lep.pt, lep.eta, 30.);
-      if (stat == up) f = fV+fE; 
-      else if (stat==down) f = fV-fE;
+      if (stat == MuUp) f = fV+fE; 
+      else if (stat == MuDown) f = fV-fE;
       else f = fV;
 
     } else if ( lep.flavour == Electron) {
       fV = GetFactor(ElecFR[ele],  lep.pt, lep.eta, 30.0);
       fE = GetFactorError(ElecFR[ele],  lep.pt, lep.eta, 30.);
-      if (stat == up) f = fV+fE; 
-      else if (stat==down) f = fV-fE;
+      if (stat == ElUp) f = fV+fE; 
+      else if (stat == ElDown) f = fV-fE;
       else f = fV; 
     }
 
